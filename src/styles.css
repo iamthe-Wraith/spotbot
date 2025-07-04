@@ -1,6 +1,6 @@
 @font-face {
 	font-family: 'League_Gothic';
-	src: url('/fonts/LeagueGothic/LeagueGothic-Regular-VariableFont_wdth.ttf') format('truetype');
+	src: url('/fonts/League_Gothic/LeagueGothic-Regular-VariableFont_wdth.ttf') format('truetype');
 	font-display: fallback;
 }
 
@@ -185,6 +185,7 @@ input,
 textarea,
 select,
 label:has(input:focus-visible) {
+	border-radius: 0.25rem;
 	outline: none !important;
 
 	&:not(.no-outline):focus-visible {

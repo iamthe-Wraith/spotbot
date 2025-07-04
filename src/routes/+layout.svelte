@@ -1,11 +1,12 @@
 <script lang="ts">
+	import Logo from '$lib/components/Logo.svelte';
     import '../styles.css';
 
     let { children } = $props();
 </script>
 
 <header>
-    <h1>SpotBot</h1>
+    <Logo />
 </header>
 
 <main>
@@ -13,12 +14,15 @@
 </main>
 
 <footer>
-    <p>SpotBot</p>
+    <p>Tydal</p>
     <p>Copyright {new Date().getFullYear()}</p>
 </footer>
 
 <style>
     :global(body) {
+        --fa-primary-color: var(--primary-500);
+        --fa-secondary-color: var(--primary-800);
+
         --header-height: 4rem;
         --footer-height: 4rem;
     }
@@ -30,10 +34,6 @@
         height: var(--header-height);
         padding: 0.5rem 1rem;
         border-bottom: 1px solid var(--primary-200);
-
-        h1 {
-            margin: 0;
-        }
     }
 
     main {
