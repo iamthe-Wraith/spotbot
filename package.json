@@ -23,6 +23,7 @@
 		"@sveltejs/adapter-node": "^5.2.12",
 		"@sveltejs/kit": "^2.16.0",
 		"@sveltejs/vite-plugin-svelte": "^5.0.0",
+		"@types/d3": "^7.4.3",
 		"@types/node": "^24.0.10",
 		"@vitest/browser": "^3.2.3",
 		"eslint": "^9.18.0",
@@ -41,6 +42,7 @@
 		"vitest-browser-svelte": "^0.1.0"
 	},
 	"dependencies": {
+		"d3": "^7.9.0",
 		"dayjs": "^1.11.13",
 		"dexie": "^4.0.11"
 	}
