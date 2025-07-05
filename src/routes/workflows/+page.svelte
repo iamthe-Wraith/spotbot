@@ -20,7 +20,7 @@
     // Dexie currently uses stores instead of state
     // TODO: update this once Dexie supports Svelte5 $state
     let workflows = liveQuery(
-        () => db.workflows.toArray()
+        () => db.workflows.orderBy('created_at').reverse().toArray()
     ); 
 
     const on_create_workflow = () => {

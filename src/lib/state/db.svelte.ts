@@ -61,5 +61,5 @@ db.version(1).stores({
   workflow_file_data: '++id, workflow_id, workflow_file_id, data, created_at, updated_at',
 });
 
-export type { IWorkflow };
+export type { IWorkflow, IWorkflowFile, IWorkflowFileData };
 export { db, WORKFLOW_STATUS };

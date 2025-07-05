@@ -47,6 +47,8 @@ import Logo from '$lib/components/Logo.svelte';
     }
 
     main {
+        display: flex;
+        flex-direction: column;
         min-height: calc(100vh - var(--header-height) - var(--footer-height));
         padding: 1rem;
     }
