@@ -7,6 +7,8 @@
 	import { db, WORKFLOW_STATUS, type IWorkflow, type IWorkflowFile } from "$lib/state/db.svelte";
     import { onMount } from "svelte";
 	import Link from "$lib/components/Link.svelte";
+	import WorkflowSteps from "$lib/components/WorkflowSteps.svelte";
+	import Icon from "$lib/components/Icon.svelte";
 
     dayjs.extend(utc);
 
@@ -18,11 +20,6 @@
         type: 'base' | 'updated';
     }
 
-    interface IStep {
-        name: string;
-        completed: boolean;
-    }
-
     interface IFiles {
         base: IWorkflowFile | null;
         updated: IWorkflowFile | null;
@@ -32,40 +29,6 @@
     let files = $state<IFiles>({
         base: null,
         updated: null,
-    });
-    let steps = $derived.by(() => {
-        const _steps: IStep[] = [
-            {
-                name: 'Workflow Created',
-                completed: true,
-            },
-            {
-                name: 'Files Uploaded',
-                completed: workflow?.status === WORKFLOW_STATUS.FILES_UPLOADED ||
-                    workflow?.status === WORKFLOW_STATUS.COLUMNS_MAPPED ||
-                    workflow?.status === WORKFLOW_STATUS.PROCESSING ||
-                    workflow?.status === WORKFLOW_STATUS.PROCESSED ||
-                    workflow?.status === WORKFLOW_STATUS.COMPLETED,
-            },
-            {
-                name: 'Columns Mapped',
-                completed: workflow?.status === WORKFLOW_STATUS.COLUMNS_MAPPED ||
-                    workflow?.status === WORKFLOW_STATUS.PROCESSING ||
-                    workflow?.status === WORKFLOW_STATUS.PROCESSED ||
-                    workflow?.status === WORKFLOW_STATUS.COMPLETED,
-            },
-            {
-                name: 'Data Processed',
-                completed: workflow?.status === WORKFLOW_STATUS.PROCESSED ||
-                    workflow?.status === WORKFLOW_STATUS.COMPLETED,
-            },
-            {
-                name: 'Workflow Completed',
-                completed: workflow?.status === WORKFLOW_STATUS.COMPLETED,
-            },
-        ];
-
-        return _steps;
     });
 
     let base_data = $state<IFileData | null>(null);
@@ -257,23 +220,7 @@
 
 <div class="workflow-container">
     {#if workflow}
-        <div class="workflow-steps">
-            {#each steps as step, i}
-                <div class="step" class:completed={step.completed}>
-                    {#if step.completed}
-                        <span class="step-completed-icon">
-                            <i class="fa-duotone fa-solid fa-check"></i>
-                        </span>
-                    {/if}
-                    {step.name}
-                </div>
-                {#if i < steps.length - 1}
-                    <div class="step-divider">
-                        <i class="fa-duotone fa-solid fa-chevron-right"></i>
-                    </div>
-                {/if}
-            {/each}
-        </div>
+        <WorkflowSteps {workflow} />
     
         <section>
             <h1>{workflow.name}</h1>
@@ -301,9 +248,7 @@
 
                         {#if files.base && !changing_files}
                             <p class="file-uploaded-text">
-                                <span class="file-uploaded-icon">
-                                    <i class="fa-duotone fa-solid fa-check"></i>
-                                </span>
+                                <Icon icon="fa-solid fa-check" theme="success" />
                                 {files.base.filename}
                             </p>
                         {:else}
@@ -320,9 +265,7 @@
 
                         {#if files.updated && !changing_files}
                             <p class="file-uploaded-text">
-                                <span class="file-uploaded-icon">
-                                    <i class="fa-duotone fa-solid fa-check"></i>
-                                </span>
+                                <Icon icon="fa-solid fa-check" theme="success" />
                                 {files.updated.filename}
                             </p>
                         {:else}
@@ -399,44 +342,6 @@
         height: 100%;
     }
 
-    .workflow-steps {
-        margin-bottom: 2rem;
-    }
-
-    .step {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: flex-start;
-        gap: 0.5rem;
-        color: var(--primary-300);
-    }
-
-    .step.completed {
-        --fa-primary-color: var(--success-900);
-        --fa-secondary-color: var(--primary-500);
-
-        color: var(--primary-900);
-    }
-
-    .step-completed-icon {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 1.25rem;
-        height: 1.25rem;
-        border-radius: 100%;
-        background-color: var(--success-500);
-    }
-
-    .workflow-steps {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: flex-start;
-        gap: 1rem;
-    }
-
     .imports-container {
         display: flex;
         flex: 1;
@@ -497,19 +402,6 @@
         align-items: center;
         justify-content: flex-start;
         gap: 0.5rem;
-    }
-
-    .file-uploaded-icon {
-        --fa-primary-color: var(--success-900);
-        --fa-secondary-color: var(--success-500);
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 1.25rem;
-        height: 1.25rem;
-        border-radius: 100%;
-        background-color: var(--success-500);
     }
 
     .buttons-container {

@@ -25,16 +25,6 @@
         --pill-text: var(--neutral-100);
     }
 
-    .pill.success {
-        --pill-background: var(--success-400);
-        --pill-text: var(--success-900);
-    }
-
-    .pill.danger {
-        --pill-background: var(--danger-300);
-        --pill-text: var(--danger-900);
-    }
-
     .pill.neutral {
         --pill-background: var(--neutral-100);
         --pill-text: var(--neutral-900);
@@ -43,5 +33,15 @@
     .pill.light {
         --pill-background: var(--neutral-800);
         --pill-text: var(--neutral-100);
+    }
+
+    .pill.success {
+        --pill-background: var(--success-400);
+        --pill-text: var(--success-900);
+    }
+
+    .pill.danger {
+        --pill-background: var(--danger-300);
+        --pill-text: var(--danger-900);
     }
 </style>
