@@ -1,9 +1,22 @@
 <script lang="ts">
 	import { page } from "$app/state";
     import { csvParse } from "d3";
+	import dayjs from "dayjs";
+    import utc from "dayjs/plugin/utc";
 	import Button from "$lib/components/Button.svelte";
 	import { db, WORKFLOW_STATUS, type IWorkflow } from "$lib/state/db.svelte";
     import { onMount } from "svelte";
+
+    dayjs.extend(utc);
+
+    interface IFileData {
+        filename: string;
+        size: number;
+        columns: string[];
+        data: unknown[];
+        type: 'base' | 'updated';
+        saved: boolean;
+    }
 
     interface IStep {
         name: string;
@@ -45,6 +58,10 @@
 
         return _steps;
     });
+
+    let base_data = $state<IFileData | null>(null);
+    let updated_data = $state<IFileData | null>(null);
+
     let error = $state('');
 
     onMount(async () => {
@@ -67,13 +84,22 @@
         }
     }
 
-    const read_data = (reader: FileReader, file: File) => new Promise<{ data: any[], columns: string[] }>((resolve, reject) => {
+    const read_data = (reader: FileReader, file: File) => new Promise<{ data: unknown[], columns: string[] }>((resolve, reject) => {
         reader.onload = function (e: ProgressEvent<FileReader>) {
             try {
                 const text = e.target?.result;
                 if (text) {
-                    const data = csvParse(text as string);
-                    const columns = (data['columns'] || []).filter(c => !!c);
+                    const raw_data = csvParse(text as string);
+                    // remove empty columns
+                    const columns = raw_data.length > 0 ? Object.keys(raw_data[0]).filter(c => !!c) : [];
+                    // remove empty data in each row
+                    const data = raw_data.map(row => {
+                        const obj: Record<string, unknown> = {};
+                        for (const [key, value] of Object.entries(row)) {
+                            if (!!key.trim()) obj[key] = value;
+                        }
+                        return obj;
+                    });
 
                     resolve({ data, columns });
                 } else {
@@ -121,27 +147,73 @@
 
             const reader = new FileReader();
 
-            const base_data = await read_data(reader, base_data_file);
-            const updated_data = await read_data(reader, updated_data_file);
+            const raw_base_data = await read_data(reader, base_data_file);
+            const raw_updated_data = await read_data(reader, updated_data_file);
 
-            const all_base_data = {
+            base_data = {
                 filename: base_data_file.name,
                 size: base_data_file.size,
-                columns: base_data.columns,
-                data: base_data.data,
+                columns: raw_base_data.columns,
+                data: raw_base_data.data,
+                type: 'base',
+                saved: false,
             };
 
-            const all_updated_data = {
+            updated_data = {
                 filename: updated_data_file.name,
                 size: updated_data_file.size,
-                columns: updated_data.columns,
-                data: updated_data.data,
+                columns: raw_updated_data.columns,
+                data: raw_updated_data.data,
+                type: 'updated',
+                saved: false,
             };
 
-            // TODO: save file data to db
-            console.log(all_base_data, all_updated_data);
+            // deleting existing file data for this workflow before writing new data
+            await db.workflow_files.where('workflow_id').equals(workflow!.id).delete();
+            await db.workflow_file_data.where('workflow_id').equals(workflow!.id).delete();
+
+            base_data.saved = await save_file_data($state.snapshot(base_data));
+            updated_data.saved = await save_file_data($state.snapshot(updated_data));
+
+            if (base_data.saved && updated_data.saved) {
+                workflow!.status = WORKFLOW_STATUS.FILES_UPLOADED;
+                await db.workflows.update(workflow!.id, workflow!);
+            }
         } catch (err: unknown) {
             error = err instanceof Error ? err.message : 'Unknown error';
+        }
+    }
+
+    const save_file_data = async (file_data: IFileData) => {
+        try {
+            const now = dayjs.utc().toISOString();
+
+            const result = await db.workflow_files.add({
+                id: crypto.randomUUID(),
+                workflow_id: workflow!.id,
+                filename: file_data.filename,
+                size: file_data.size,
+                workflow_file_type: file_data.type,
+                columns: file_data.columns,
+                created_at: now,
+                updated_at: now,
+            });
+
+            for (const row of file_data.data) {
+                await db.workflow_file_data.add({
+                    id: crypto.randomUUID(),
+                    workflow_id: workflow!.id,
+                    workflow_file_id: result,
+                    data: row as object,
+                    created_at: now,
+                    updated_at: now,
+                });
+            }
+
+            return true;
+        } catch (err: unknown) {
+            error = err instanceof Error ? err.message : 'Unknown error';
+            return false;
         }
     }
 </script>
@@ -184,10 +256,16 @@
                 <div class="imports-container-inner">
                     <div class="import-card">
                         <input type="file" accept=".csv" name="base_data_file" />
+                        {#if base_data?.saved}
+                            <p>Base data saved</p>
+                        {/if}
                     </div>
         
                     <div class="import-card">
                         <input type="file" accept=".csv" name="updated_data_file" />
+                        {#if updated_data?.saved}
+                            <p>Updated data saved</p>
+                        {/if}
                     </div>
                 </div>
 
