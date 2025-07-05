@@ -18,12 +18,12 @@
         const _steps: IStep[] = [
             {
                 name: 'Workflow Created',
-                url: `/workflows/${workflow.id}`,
+                url: `/workflows?workflow_id=${workflow.id}`,
                 completed: true,
             },
             {
                 name: 'Files Uploaded',
-                url: `/workflows/${workflow.id}/map-columns`,
+                url: `/workflows/${workflow.id}`,
                 completed: workflow?.status === WORKFLOW_STATUS.FILES_UPLOADED ||
                     workflow?.status === WORKFLOW_STATUS.COLUMNS_MAPPED ||
                     workflow?.status === WORKFLOW_STATUS.PROCESSING ||

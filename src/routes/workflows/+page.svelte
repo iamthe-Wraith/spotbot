@@ -52,14 +52,16 @@
                 </div>
             {/each}
 
-            <div class="workflow-actions">
-                <Button
-                    onclick={on_create_workflow}
-                    theme="primary"
-                >
-                    Create new workflow
-                </Button>
-            </div>
+            {#if $workflows?.length}
+                <div class="workflow-actions">
+                    <Button
+                        onclick={on_create_workflow}
+                        theme="primary"
+                    >
+                        Create new workflow
+                    </Button>
+                </div>
+            {/if}
         {/if}
     </div>
 

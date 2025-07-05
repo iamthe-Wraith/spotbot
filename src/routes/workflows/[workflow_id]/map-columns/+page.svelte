@@ -1,12 +1,18 @@
 <script lang="ts">
-	import { page } from "$app/state";
+	import { onMount } from "svelte";
+	import dayjs from "dayjs";
+    import utc from "dayjs/plugin/utc";
+    import { page } from "$app/state";
+	import Button from "$lib/components/Button.svelte";
 	import Checkbox from "$lib/components/Checkbox.svelte";
 	import ComboBox from "$lib/components/ComboBox.svelte";
 	import Link from "$lib/components/Link.svelte";
 	import WithTooltip from "$lib/components/WithTooltip.svelte";
     import WorkflowSteps from "$lib/components/WorkflowSteps.svelte";
 	import { db, WORKFLOW_STATUS, type IWorkflow, type IWorkflowFile } from "$lib/state/db.svelte";
-	import { onMount } from "svelte";
+	import { toast } from "$lib/state/toast.svelte";
+
+    dayjs.extend(utc);
 
     interface IFiles {
         base: IWorkflowFile | null;
@@ -19,10 +25,33 @@
         updated: null,
     });
 
-    let options = $derived(files.updated?.columns?.map(c => ({
-        value: c,
-        text: c,
-    })) ?? [])
+    let options = $derived.by(() => {
+        if (!files.updated?.columns) {
+            return [];
+        }
+
+        const options = files.updated?.columns?.map(c => ({
+            value: c,
+            text: c,
+        }));
+
+        return [
+            {
+                value: '',
+                text: 'Select a Column',
+            },
+            ...options,
+        ]
+    });
+
+    let columns_mapped = $derived.by(() => {
+        if (!workflow) {
+            return false;
+        }
+
+        return workflow.status !== WORKFLOW_STATUS.CREATED &&
+            workflow.status !== WORKFLOW_STATUS.FILES_UPLOADED;
+    });
 
     let error = $state('');
         
@@ -67,7 +96,40 @@
     const on_map_columns = async (e: Event) => {
         e.preventDefault();
 
-        console.log('map columns');
+        const form_data = new FormData(e.target as HTMLFormElement);
+
+        try {
+            await db.workflow_column_mappings.where('workflow_id')
+                .equals(workflow!.id)
+                .delete();
+
+            for (const column of files.base?.columns ?? []) {
+                const raw_match = form_data.get(`column-${column}-match`) as string;
+                const match = raw_match === 'on';
+                const updated_column = form_data.get(`updated-column-${column}`) as string;
+
+                const now = dayjs.utc().toISOString();
+
+                await db.workflow_column_mappings.add({
+                    workflow_id: workflow!.id,
+                    base_column: column,
+                    updated_column,
+                    match,
+                    created_at: now,
+                    updated_at: now,
+                });
+            }
+
+            workflow!.status = WORKFLOW_STATUS.COLUMNS_MAPPED;
+            await db.workflows.put($state.snapshot(workflow!));
+
+            toast.add({
+                message: 'Columns mapped successfully',
+                type: 'success',
+            });
+        } catch (err: unknown) {
+            error = `Failed to map columns: ${err}`;
+        }
     }
 </script>
 
@@ -143,6 +205,15 @@
                                 </div>
                             </div>
                         {/each}
+
+                        <div class="buttons-container">
+                            <Button
+                                type="submit"
+                                theme="primary"
+                            >
+                                Map Columns
+                            </Button>
+                        </div>
                     {/if}
                 </form>
 
@@ -154,9 +225,14 @@
                         Back to Files Upload
                     </Link>
 
-                    <div>
-                        process data...
-                    </div>
+                    <span class:disabled={!columns_mapped}>
+                        <Link
+                            href={columns_mapped ? `/workflows/${workflow.id}/process-data` : '#'}
+                            theme="primary"
+                        >
+                            Process Data
+                        </Link>
+                    </span>
                 </div>
             </section>
         {/if}
@@ -203,7 +279,7 @@
         align-items: center;
         justify-content: space-between;
         gap: 1rem;
-        padding: 1rem;
+        padding: 1rem 0;
         border-bottom: 1px solid var(--primary-200);
 
         & > * {
@@ -243,6 +319,15 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+    }
+
+    .buttons-container {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 1rem;
+        padding-top: 1rem;
     }
 
     .controls-container {

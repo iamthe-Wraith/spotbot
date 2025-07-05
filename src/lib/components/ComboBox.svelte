@@ -60,7 +60,7 @@
 
     $effect(() => {
         if (input_element) {
-            if (selected_option) {
+            if (selected_option && selected_option.value !== '') {
                 input_element.value = (selected_option.text as string);
             } else {
                 input_element.value = '';
@@ -270,10 +270,6 @@
             
             if (option.options) {
                 validate_options(option.options);
-            } else {
-                if (!option.value) {
-                    throw new Error('Options must have a value property if they do not have additional options');
-                }
             }
         }
     }

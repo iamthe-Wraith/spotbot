@@ -135,6 +135,7 @@
 
             // deleting existing file data for this workflow before writing new data
             await db.workflow_files.where('workflow_id').equals(workflow!.id).delete();
+            await db.workflow_column_mappings.where('workflow_id').equals(workflow!.id).delete();
             await db.workflow_file_data.where('workflow_id').equals(workflow!.id).delete();
 
             await save_file_data($state.snapshot(base_data));

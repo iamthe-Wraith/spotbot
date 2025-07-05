@@ -3,7 +3,7 @@ import Dexie, { type EntityTable } from "dexie";
 const WORKFLOW_STATUS = {
     CREATED: 'created',
     FILES_UPLOADED: 'data_uploaded',
-    COLUMNS_MAPPED: 'data_mapped',
+    COLUMNS_MAPPED: 'columns_mapped',
     PROCESSING: 'processing',
     PROCESSED: 'processed',
     COMPLETED: 'completed',
@@ -31,6 +31,16 @@ interface IWorkflowFile {
     updated_at: string;
 }
 
+interface IWorkflowColumnMapping {
+    id: string;
+    workflow_id: string;
+    base_column: string;
+    updated_column: string;
+    match: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
 interface IWorkflowFileData {
     id: string;
     workflow_id: string;
@@ -49,6 +59,10 @@ const db = $state(new Dexie('tydal') as Dexie & {
         IWorkflowFile,
         'id'
     >;
+    workflow_column_mappings: EntityTable<
+        IWorkflowColumnMapping,
+        'id'
+    >;
     workflow_file_data: EntityTable<
         IWorkflowFileData,
         'id'
@@ -58,8 +72,9 @@ const db = $state(new Dexie('tydal') as Dexie & {
 db.version(1).stores({
   workflows: '++id, name, description, confidence_threshold, status, created_at, updated_at',
   workflow_files: '++id, workflow_id, filename, size, workflow_file_type, columns, created_at, updated_at',
+  workflow_column_mappings: '++id, workflow_id, workflow_file_id, base_column, updated_column, match, created_at, updated_at',
   workflow_file_data: '++id, workflow_id, workflow_file_id, data, created_at, updated_at',
 });
 
-export type { IWorkflow, IWorkflowFile, IWorkflowFileData };
+export type { IWorkflow, IWorkflowFile, IWorkflowColumnMapping, IWorkflowFileData };
 export { db, WORKFLOW_STATUS };
