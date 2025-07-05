@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { page } from "$app/state";
+	import Checkbox from "$lib/components/Checkbox.svelte";
 	import ComboBox from "$lib/components/ComboBox.svelte";
 	import Link from "$lib/components/Link.svelte";
+	import WithTooltip from "$lib/components/WithTooltip.svelte";
     import WorkflowSteps from "$lib/components/WorkflowSteps.svelte";
 	import { db, WORKFLOW_STATUS, type IWorkflow, type IWorkflowFile } from "$lib/state/db.svelte";
 	import { onMount } from "svelte";
@@ -93,22 +95,49 @@
                 >
                     {#if files.base && files.updated}
                         <div class="column-mapping-row">
-                            <div class="h2">Base Columns</div>
+                            <div class="column-mapping-row-left">
+                                <div class="column-match-column">
+                                    Match
+                                    <WithTooltip 
+                                        id="column-match-tooltip"
+                                        text="The base and updated column values must have a similarity within the requirement threshold during processing to be considered a match. Otherwise, the columns will not be compared."
+                                        position="top"
+                                        align="start"
+                                    >
+                                        <i class="fa-duotone fa-regular fa-circle-info"></i>
+                                    </WithTooltip>
+                                </div>
+    
+                                <div>
+                                    Base Columns
+                                </div>
+                            </div>
 
-                            <div class="h2">Updated Columns</div>
+                            <div>
+                                Updated Columns
+                            </div>
                         </div>
                         {#each files.base.columns as column}
                             <div class="column-mapping-row">
-                                <div>
-                                    { column }
+                                <div class="column-mapping-row-left">
+                                    <div class="column-match-column">
+                                        <Checkbox
+                                            id="column-{column}-match"
+                                            name="column-{column}-match"
+                                        />
+                                    </div>
+
+                                    <div class="column-name">
+                                        { column }
+                                    </div>
                                 </div>
 
                                 <div>
                                     <ComboBox
-                                        id="column-mapping-base-column"
-                                        name="base_column"
+                                        id="updated-column-{column}"
+                                        name="updated-column-{column}"
                                         options={options}
-                                        selected_option={options?.find(c => c.value === column)}
+                                        selected_option={options?.find(c => c.value.toLocaleLowerCase() === column.toLocaleLowerCase())}
                                         placeholder="Select a Column"
                                     />
                                 </div>
@@ -137,6 +166,10 @@
 </div>
 
 <style>
+    h1 {
+        margin-bottom: 0;
+    }
+
     .workflow-container {
         display: flex;
         flex: 1;
@@ -155,7 +188,7 @@
         justify-content: space-between;
         gap: 1rem;
         height: 100%;
-        margin-top: 2rem;
+        margin-top: 1rem;
     }
 
     .column-mapping-container form {
@@ -176,6 +209,40 @@
         & > * {
             flex: 1;
         }
+
+        @media (max-width: 768px) {
+            padding: 0.5rem 0;
+        }
+    }
+
+    .column-mapping-row-left {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 1rem;
+        min-width: 45%;
+    }
+
+    .column-match-column {
+        --fa-primary-color: var(--primary-400);
+        --fa-secondary-color: var(--primary-100);
+
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 0.3rem;
+        min-width: 4rem;
+        max-width: 4rem;
+    }
+
+    .column-name {
+        flex: 1;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .controls-container {

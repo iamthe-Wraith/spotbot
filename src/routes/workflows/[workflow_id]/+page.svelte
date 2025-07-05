@@ -350,7 +350,7 @@
         justify-content: space-between;
         gap: 1rem;
         height: 100%;
-        margin-top: 2rem;
+        margin-top: 1rem;
     }
 
     .imports-container form {

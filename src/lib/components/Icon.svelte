@@ -20,6 +20,7 @@
         height: 1.25rem;
         border-radius: 100%;
         background-color: var(--icon-background, --primary-400);
+        aspect-ratio: 1 / 1 !important;
     }
 
     .icon.primary {
