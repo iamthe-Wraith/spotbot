@@ -29,15 +29,18 @@
             <p class="name h2">
                 {workflow.name}
             </p>
-
-            <p class="description">
-                {workflow.description}
-            </p>
         </div>
 
-        <div>
+        <div class="workflow-info">
+            <div class="confidence-threshold">
+                {workflow.confidence_threshold}%
+                <span>
+                    Confidence
+                </span>
+            </div>
+
             <Pill theme={get_workflow_theme(workflow.status)}>
-                {workflow.status}
+                {workflow.status.split('_').join(' ')}
             </Pill>
         </div>
     </a>
@@ -48,8 +51,10 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 1rem;
+        width: 100%;
         padding: 1rem;
-        border: 1px solid var(--primary-300);
+        border: 1px solid var(--primary-500);
         border-radius: 0.5rem;
         text-decoration: none;
 
@@ -57,14 +62,51 @@
         &:focus-visible {
             border-color: var(--accent1-500);
         }
+
+        &:hover {
+            outline: 1px solid var(--accent1-500);
+        }
+
+        & > * {
+            flex: 1;
+            min-width: 0;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
     }
 
     .name {
-        margin-bottom: 0.5rem;
+        margin: 0;
         color: var(--neutral-900);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 100%;
     }
 
-    .description {
-        margin: 0;
+    .workflow-info {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+
+    }
+
+    .confidence-threshold {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+        font-size: 1.5rem;
+        color: var(--neutral-900);
+
+        span {
+            font-size: 0.65rem;
+            color: var(--primary-500);
+        }
     }
 </style>

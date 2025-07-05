@@ -3,7 +3,7 @@
 	import Link from "$lib/components/Link.svelte";
 	import ManageWorkflowModal from "$lib/components/modals/ManageWorkflowModal.svelte";
 	import Pill from "$lib/components/Pill.svelte";
-	import WorkflowItem from "$lib/components/workflow-item.svelte";
+	import WorkflowItem from "$lib/components/WorkflowItem.svelte";
 	import { OPEN_MODAL_EVENT } from "$lib/constants/custom-events";
 	import { db, WORKFLOW_STATUS } from "$lib/state/db.svelte";
 	import { dispatch } from "$lib/utils/dispatch";
@@ -40,8 +40,8 @@
             {#each $workflows as workflow (workflow.id)}
                 <WorkflowItem {workflow} />
             {:else}
-                <article>
-                    <div>
+                <div class="empty-state flex-center">
+                    <div class="h2">
                         No workflows found
                     </div>
                     <Button
@@ -49,8 +49,17 @@
                     >
                         Create new workflow
                     </Button>
-                </article>
+                </div>
             {/each}
+
+            <div class="workflow-actions">
+                <Button
+                    onclick={on_create_workflow}
+                    theme="primary"
+                >
+                    Create new workflow
+                </Button>
+            </div>
         {/if}
     </div>
 
@@ -70,5 +79,22 @@
         padding: 0;
         margin: 0;
         list-style: none;
+    }
+
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        height: 40vh;
+    }
+
+    .workflow-actions {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        margin-top: 2rem;
     }
 </style>

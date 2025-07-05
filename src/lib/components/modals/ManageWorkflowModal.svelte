@@ -90,8 +90,6 @@
     const on_submit = async (event: SubmitEvent & { currentTarget: EventTarget & HTMLFormElement}) => {
 		event.preventDefault();
 
-        console.log('creating workflow', workflow, name, description, confidence_threshold);
-
         try {
             const now = dayjs.utc().toISOString();
             const data: IWorkflow = !!workflow
@@ -113,8 +111,6 @@
                 };
             
             const id = await db.workflows.add(data);
-
-            console.log('>>>>> workflow created', data, id);
 
             reset();
             oncomplete?.(data);
@@ -186,11 +182,11 @@
                 name="confidence_threshold"
                 data-testid="workflow-confidence-threshold"
                 label="Confidence Threshold"
-                text="The minimum confidence score for a workflow to be considered a match. 0 = "
+                text="The minimum confidence percent to match data points. The higher the percent, the closer the values must be to be considered a match."
                 placeholder="Confidence Threshold"
-                step={0.01}
+                step={1}
                 min={0}
-                max={1}
+                max={100}
                 error={confidence_threshold_error}
                 bind:value={confidence_threshold}
             />

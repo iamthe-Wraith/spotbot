@@ -12,6 +12,7 @@
         border-radius: 10rem;
         background-color: var(--pill-background);
         color: var(--pill-text);
+        text-transform: capitalize;
     }
 
     .pill.primary {
