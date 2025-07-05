@@ -73,15 +73,15 @@ body {
 	--primary-800: oklch(0.8556 0.133 196.75);
 	--primary-900: oklch(0.9045 0.1304 196.9);
 
-	--accent-100: oklch(0.5471 0.1036 102.49);
-	--accent-200: oklch(0.6382 0.1184 102.49);
-	--accent-300: oklch(0.7059 0.1529 102.49);
-	--accent-400: oklch(0.7853 0.1677 102.49);
-	--accent-500: oklch(0.8442 0.1721 102.49);
-	--accent-600: oklch(0.8824 0.1776 102.49);
-	--accent-700: oklch(0.9206 0.1653 102.49);
-	--accent-800: oklch(0.9412 0.1332 102.49);
-	--accent-900: oklch(0.9618 0.1011 102.49);
+	--accent1-100: oklch(0.5471 0.1036 102.49);
+	--accent1-200: oklch(0.6382 0.1184 102.49);
+	--accent1-300: oklch(0.7059 0.1529 102.49);
+	--accent1-400: oklch(0.7853 0.1677 102.49);
+	--accent1-500: oklch(0.8442 0.1721 102.49);
+	--accent1-600: oklch(0.8824 0.1776 102.49);
+	--accent1-700: oklch(0.9206 0.1653 102.49);
+	--accent1-800: oklch(0.9412 0.1332 102.49);
+	--accent1-900: oklch(0.9618 0.1011 102.49);
 
 	--danger-100: oklch(24.12% 0.101 23.82);
 	--danger-200: oklch(34.12% 0.15 23.82);
@@ -215,7 +215,7 @@ h5,
 h6 {
 	font-family: var(--header-font);
 	color: var(--primary-500);
-	letter-spacing: 0.05rem;
+	letter-spacing: 0.025rem;
 	text-align: left;
 }
 
@@ -233,13 +233,13 @@ h6 *,
 .h6 {
 	font-family: var(--header-font);
 	color: var(--primary-500);
-	letter-spacing: 0.05rem;
+	letter-spacing: 0.025rem;
 }
 
 .header-font,
 .header-font * {
 	font-family: var(--header-font);
-	letter-spacing: 0.05rem;
+	letter-spacing: 0.025rem;
 }
 
 h1,

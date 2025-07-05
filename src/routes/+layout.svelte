@@ -1,5 +1,7 @@
 <script lang="ts">
-	import Logo from '$lib/components/Logo.svelte';
+	import Link from '$lib/components/Link.svelte';
+import Logo from '$lib/components/Logo.svelte';
+	import Toast from '$lib/components/modals/Toast.svelte';
     import '../styles.css';
 
     let { children } = $props();
@@ -7,6 +9,12 @@
 
 <header>
     <Logo />
+
+    <nav>
+        <Link href="/workflows" theme="light-text">
+            Workflows
+        </Link>
+    </nav>
 </header>
 
 <main>
@@ -17,6 +25,8 @@
     <p>Tydal</p>
     <p>Copyright {new Date().getFullYear()}</p>
 </footer>
+
+<Toast />
 
 <style>
     :global(body) {
