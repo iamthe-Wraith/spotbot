@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from "$app/state";
+	import ComboBox from "$lib/components/ComboBox.svelte";
 	import Link from "$lib/components/Link.svelte";
     import WorkflowSteps from "$lib/components/WorkflowSteps.svelte";
 	import { db, WORKFLOW_STATUS, type IWorkflow, type IWorkflowFile } from "$lib/state/db.svelte";
@@ -15,6 +16,11 @@
         base: null,
         updated: null,
     });
+
+    let options = $derived(files.updated?.columns?.map(c => ({
+        value: c,
+        text: c,
+    })) ?? [])
 
     let error = $state('');
         
@@ -55,6 +61,12 @@
             error = `Failed to load workflow files: ${e}`;
         }
     }
+
+    const on_map_columns = async (e: Event) => {
+        e.preventDefault();
+
+        console.log('map columns');
+    }
 </script>
 
 <div class="workflow-container">
@@ -62,19 +74,121 @@
         <WorkflowSteps {workflow} />
 
         {#if workflow.status === WORKFLOW_STATUS.CREATED}
-            <div>
+            <section>
                 You must upload the base and updated files before mapping columns.
 
                 <Link href="/workflows/{workflow.id}" theme="primary">
                     Upload Files
                 </Link>
-            </div>
+            </section>
         {:else}
-            <div class="map-columns-container">
-                <h1>Map Columns</h1>
-            </div>
+            <section>
+                <h1>{workflow.name} - Map Columns</h1>
+            </section>
+
+            <section class="column-mapping-container">
+                <form
+                    method="POST"
+                    onsubmit={on_map_columns}
+                >
+                    {#if files.base && files.updated}
+                        <div class="column-mapping-row">
+                            <div class="h2">Base Columns</div>
+
+                            <div class="h2">Updated Columns</div>
+                        </div>
+                        {#each files.base.columns as column}
+                            <div class="column-mapping-row">
+                                <div>
+                                    { column }
+                                </div>
+
+                                <div>
+                                    <ComboBox
+                                        id="column-mapping-base-column"
+                                        name="base_column"
+                                        options={options}
+                                        selected_option={options?.find(c => c.value === column)}
+                                        placeholder="Select a Column"
+                                    />
+                                </div>
+                            </div>
+                        {/each}
+                    {/if}
+                </form>
+
+                <div class="controls-container">
+                    <Link
+                        href="/workflows/{workflow.id}"
+                        theme="primary-text"
+                    >
+                        Back to Files Upload
+                    </Link>
+
+                    <div>
+                        process data...
+                    </div>
+                </div>
+            </section>
         {/if}
     {:else}
-
+        <p>Loading workflow...</p>
     {/if}
 </div>
+
+<style>
+    .workflow-container {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: space-between;
+        gap: 1rem;
+        height: 100%;
+    }
+
+    .column-mapping-container {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: space-between;
+        gap: 1rem;
+        height: 100%;
+        margin-top: 2rem;
+    }
+
+    .column-mapping-container form {
+        width: 100%;
+        max-width: 50rem;
+        margin: 0 auto;
+    }
+
+    .column-mapping-row {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1rem;
+        border-bottom: 1px solid var(--primary-200);
+
+        & > * {
+            flex: 1;
+        }
+    }
+
+    .controls-container {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding-top: 1rem;
+
+        .disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+    }
+</style>
