@@ -4,8 +4,8 @@ const WORKFLOW_STATUS = {
     CREATED: 'created',
     FILES_UPLOADED: 'data_uploaded',
     COLUMNS_MAPPED: 'columns_mapped',
-    PROCESSING: 'processing',
-    PROCESSED: 'processed',
+    MAPPED_COLUMNS_REVIEWED: 'mapped_columns_reviewed',
+    RESULTS_REVIEWED: 'results_reviewed',
     COMPLETED: 'completed',
     FAILED: 'failed',
 } as const;

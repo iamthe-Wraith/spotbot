@@ -456,7 +456,7 @@
             </section>
         {:else}
             <section>
-                <h1>{workflow.name} - Review Data</h1>
+                <h1>{workflow.name} - Review Mapped Columns</h1>
 
                 <p>
                     Here, you'll need to review any rows that were matched between the base and updated files based on your configured
@@ -670,6 +670,8 @@
                     <div>view results...</div>
                 </div>
             </section>
+
+            
         {/if}
     {:else}
         {#if loading}
