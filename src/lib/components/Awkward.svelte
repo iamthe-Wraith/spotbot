@@ -15,8 +15,8 @@
     </div>
 
     <div class="button-container">
-        <Link href="/dashboard">
-            Go to dashboard
+        <Link href="/workflows">
+            Go to Workflows
         </Link>
     </div>
 </div>

@@ -97,7 +97,7 @@
                     ...workflow,
                     name,
                     description,
-                    confidence_threshold,
+                    confidence_threshold: confidence_threshold,
                     updated_at: now,
                 }
                 : {

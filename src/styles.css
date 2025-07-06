@@ -108,8 +108,7 @@ body {
 
 	--outline-offset: 3px;
 
-	/* background-color: var(--primary-50); */
-	background-image: linear-gradient(to bottom, var(--primary-100), var(--primary-50));
+	background: var(--primary-100);
 }
 
 h1,
