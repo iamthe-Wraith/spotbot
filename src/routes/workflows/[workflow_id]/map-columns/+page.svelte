@@ -150,13 +150,7 @@
             let at_least_one_match = false;
             let at_least_one_updated_column = false;
 
-            console.log('>>>>> mappings: ', $state.snapshot(mappings));
-
             for (const mapping of mappings ?? []) {
-                // const raw_match = form_data.get(`column-${mapping.base_column}-match`) as string;
-                // const match = raw_match === 'on';
-                // const updated_column = form_data.get(`updated-column-${mapping.base_column}`) as string;
-
                 const now = dayjs.utc().toISOString();
 
                 if (mapping.match) {

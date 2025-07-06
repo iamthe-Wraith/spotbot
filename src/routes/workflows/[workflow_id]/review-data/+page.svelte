@@ -182,6 +182,16 @@
 
                 for (const match of matches) {
                     if (all_results[match.base_row_id]) {
+                        if (match.confirmed_at) {
+                            all_results[match.base_row_id].confirmed_at = match.confirmed_at;
+                            all_results[match.base_row_id].rejected_at = null;
+                            all_results[match.base_row_id].confirmed_row = data.updated.find(d => d.id === match.updated_row_id)!;
+                        }
+
+                        if (match.rejected_at && !all_results[match.base_row_id].confirmed_at) {
+                            all_results[match.base_row_id].rejected_at = match.rejected_at;
+                        }
+
                         all_results[match.base_row_id].matched_rows[match.updated_row_id] = {
                             updated_row: data.updated.find(d => d.id === match.updated_row_id)!,
                             rejected_at: match.rejected_at,
@@ -197,8 +207,6 @@
                     } else {
                         const base_row = data.base.find(d => d.id === match.base_row_id)!;
                         const updated_row = data.updated.find(d => d.id === match.updated_row_id)!;
-
-                        console.log('>>>>> match rejected_at', match.rejected_at);
 
                         all_results[match.base_row_id] = {
                             base_row,
@@ -510,6 +518,7 @@
                 <div class="results-container">
                     {#if Object.keys(results).length}
                         {#each Object.values(results).sort((a, b) => a.base_row.row - b.base_row.row) as result (result.base_row.id)}
+                            <div>confirmed: {result.confirmed_at ?? 'no confirmed...'}</div>
                             <article
                                 class="result-container"
                                 class:confirmed={result.confirmed_at}
