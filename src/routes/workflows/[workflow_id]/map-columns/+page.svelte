@@ -105,6 +105,9 @@
                 .equals(workflow!.id)
                 .delete();
 
+            let at_least_one_match = false;
+            let at_least_one_updated_column = false;
+
             for (const column of files.base?.columns ?? []) {
                 const raw_match = form_data.get(`column-${column}-match`) as string;
                 const match = raw_match === 'on';
@@ -112,8 +115,16 @@
 
                 const now = dayjs.utc().toISOString();
 
+                if (match) {
+                    at_least_one_match = true;
+                }
+
+                if (updated_column) {
+                    at_least_one_updated_column = true;
+                }
+
                 if (match && !updated_column) {
-                    error = 'Columns must be mapped in order to require matching';
+                    error = 'Columns must be mapped in order to enabled matching';
                     return;
                 }
 
@@ -125,6 +136,16 @@
                     created_at: now,
                     updated_at: now,
                 });
+            }
+
+            if (!at_least_one_updated_column) {
+                error = 'At least one set of columns must be mapped';
+                return;
+            }
+            
+            if (at_least_one_updated_column) {
+                error = 'At least one column must have matching enabled';
+                return;
             }
 
             await db.workflow_matches.where('workflow_id')
