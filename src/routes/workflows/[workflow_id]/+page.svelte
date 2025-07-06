@@ -137,6 +137,7 @@
             await db.workflow_files.where('workflow_id').equals(workflow!.id).delete();
             await db.workflow_column_mappings.where('workflow_id').equals(workflow!.id).delete();
             await db.workflow_file_data.where('workflow_id').equals(workflow!.id).delete();
+            await db.workflow_matches.where('workflow_id').equals(workflow!.id).delete();
 
             await save_file_data($state.snapshot(base_data));
             await save_file_data($state.snapshot(updated_data));
@@ -200,11 +201,12 @@
                 updated_at: now,
             });
 
-            for (const row of file_data.data) {
+            for (const [index, row] of file_data.data.entries()) {
                 await db.workflow_file_data.add({
                     id: crypto.randomUUID(),
                     workflow_id: workflow!.id,
                     workflow_file_id: result,
+                    row: index,
                     data: row as object,
                     created_at: now,
                     updated_at: now,
@@ -223,14 +225,23 @@
     {#if workflow}
         <WorkflowSteps {workflow} />
     
-        <section>
+        <section class="workflow-description">
             <h1>{workflow.name}</h1>
-        
-            {#if workflow.description}
-                <p>{workflow.description}</p>
-            {/if}
 
-            <p>{workflow.confidence_threshold}% confidence threshold</p>
+            <p>
+                Upload the files you want to use for this workflow.
+            </p>
+
+            <p>
+                The <span class="highlight">base data</span> is often your original data. It's the data that will be updated with the updated data.
+                The <span class="highlight">updated data</span> is the data that will be used to update the base data for rows that are matched. If
+                no match is found for a row in the updated data, it generally indicates that the row is new and should
+                be added to the base data.
+            </p>
+
+            <p>
+                <b>Note:</b> If you are not sure about the files, you can always change them later.
+            </p>
         </section>
 
         <section class="imports-container">
@@ -341,6 +352,11 @@
         justify-content: space-between;
         gap: 1rem;
         height: 100%;
+    }
+
+    .workflow-description p span.highlight {
+        color: var(--accent1-500);
+        font-weight: 600;
     }
 
     .imports-container {

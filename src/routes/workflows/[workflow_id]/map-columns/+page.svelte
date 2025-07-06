@@ -95,6 +95,8 @@
 
     const on_map_columns = async (e: Event) => {
         e.preventDefault();
+        
+        error = '';
 
         const form_data = new FormData(e.target as HTMLFormElement);
 
@@ -110,6 +112,11 @@
 
                 const now = dayjs.utc().toISOString();
 
+                if (match && !updated_column) {
+                    error = 'Columns must be mapped in order to require matching';
+                    return;
+                }
+
                 await db.workflow_column_mappings.add({
                     workflow_id: workflow!.id,
                     base_column: column,
@@ -119,6 +126,10 @@
                     updated_at: now,
                 });
             }
+
+            await db.workflow_matches.where('workflow_id')
+                .equals(workflow!.id)
+                .delete();
 
             workflow!.status = WORKFLOW_STATUS.COLUMNS_MAPPED;
             await db.workflows.put($state.snapshot(workflow!));
@@ -146,9 +157,24 @@
                 </Link>
             </section>
         {:else}
-            <section>
+            <section class="column-mapping-description">
                 <h1>{workflow.name} - Map Columns</h1>
+
+                <p>
+                    Map the columns of the 2 different files to each other. When mapped, the base file's column will
+                    be updated with the corresponding column from the updated file for rows that are matched.
+                </p>
+
+                <p>
+                    If a column is not mapped, it will be ignored during processing.
+                </p>
+
+                <p>
+                    <b>Note:</b> If you are not sure about the mapping, you can always change it later.
+                </p>
             </section>
+
+
 
             <section class="column-mapping-container">
                 <form
@@ -162,7 +188,7 @@
                                     Match
                                     <WithTooltip 
                                         id="column-match-tooltip"
-                                        text="The base and updated column values must have a similarity within the requirement threshold during processing to be considered a match. Otherwise, the columns will not be compared."
+                                        text="The base and updated column values must have a similarity score greater than or equal to your configured threshold during processing to be considered a match. Otherwise, the columns will not be compared."
                                         position="top"
                                         align="start"
                                     >
@@ -206,6 +232,12 @@
                             </div>
                         {/each}
 
+                        {#if error}
+                            <div class="error">
+                                {error}
+                            </div>
+                        {/if}
+
                         <div class="buttons-container">
                             <Button
                                 type="submit"
@@ -227,10 +259,10 @@
 
                     <span class:disabled={!columns_mapped}>
                         <Link
-                            href={columns_mapped ? `/workflows/${workflow.id}/process-data` : '#'}
+                            href={columns_mapped ? `/workflows/${workflow.id}/review-data` : '#'}
                             theme="primary"
                         >
-                            Process Data
+                            Review Data
                         </Link>
                     </span>
                 </div>
@@ -242,10 +274,6 @@
 </div>
 
 <style>
-    h1 {
-        margin-bottom: 0;
-    }
-
     .workflow-container {
         display: flex;
         flex: 1;
@@ -254,6 +282,10 @@
         justify-content: space-between;
         gap: 1rem;
         height: 100%;
+    }
+
+    .column-mapping-description p:last-child {
+        margin-bottom: 0;
     }
 
     .column-mapping-container {
@@ -319,6 +351,11 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+    }
+
+    .error {
+        margin-top: 1rem;
+        text-align: center;
     }
 
     .buttons-container {

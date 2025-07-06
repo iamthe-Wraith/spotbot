@@ -1,4 +1,6 @@
 <script lang="ts">
+	import dayjs from "dayjs";
+    import utc from "dayjs/plugin/utc";
 	import { page } from "$app/state";
 	import Awkward from "$lib/components/Awkward.svelte";
 	import Button from "$lib/components/Button.svelte";
@@ -8,28 +10,35 @@
 	import { round } from "$lib/utils/number";
 	import { jaroWinklerDistance, levenshteinDistance } from "$lib/utils/string";
 	import { onMount } from "svelte";
+	import { sort } from "d3";
+
+    dayjs.extend(utc);
 
     interface IFiles {
         base: IWorkflowFile | null;
         updated: IWorkflowFile | null;
     }
+    interface IMapping {
+        mapping: IWorkflowColumnMapping;
+        base_col: string;
+        base_value: string;
+        updated_col: string;
+        updated_value: string;
+        confidence: number;
+    }
+
+    interface IMatchedRow {
+        updated_row: IWorkflowFileData;
+        rejected_at: string | null;
+        matched_columns: IMapping[];
+    }
 
     interface IResult {
         base_row: IWorkflowFileData;
         confirmed_row: IWorkflowFileData | null;
-        rejected: boolean;
-        matched_rows: Record<string, {
-            updated_row: IWorkflowFileData;
-            rejected: boolean;
-            matched_columns: {
-                mapping: IWorkflowColumnMapping;
-                base_col: string;
-                base_value: string;
-                updated_col: string;
-                updated_value: string;
-                confidence: number;
-            }[];
-        }>
+        confirmed_at: string | null;
+        rejected_at: string | null;
+        matched_rows: Record<string, IMatchedRow>
     }
 
     type IResults = Record<string, IResult>;
@@ -59,9 +68,9 @@
             };
         }
 
-        const potential_matches = Object.keys(results).filter(r => !results[r].rejected && !results[r].confirmed_row).length;
-        const confirmed_matches = Object.values(results).filter(r => r.confirmed_row).length;
-        const rejected_matches = Object.values(results).filter(r => r.rejected).length;
+        const potential_matches = Object.keys(results).filter(r => !results[r].rejected_at && !results[r].confirmed_at).length;
+        const confirmed_matches = Object.values(results).filter(r => r.confirmed_at).length;
+        const rejected_matches = Object.values(results).filter(r => r.rejected_at).length;
         const new_records = data.updated.length - confirmed_matches;
 
         return {
@@ -82,9 +91,12 @@
         await load_workflow_files();
         await load_workflow_column_mappings();
         await load_workflow_data();
+        await load_workflow_matches();
         loading = false;
 
-        await process_data();
+        if (!Object.keys(results).length) {
+            await process_data();
+        }
     });
 
     const load_workflow = async () => {
@@ -157,27 +169,125 @@
         }
     }
 
-    const on_confirm_result = (updated_row_id: string, result: IResult) => () => {
-        if (result.confirmed_row) {
-            return;
+    const load_workflow_matches = async () => {
+        try {
+            if (!workflow || error) return;
+
+            const matches = await db.workflow_matches.where('workflow_id')
+                .equals(workflow.id)
+                .toArray();
+
+            if (matches.length > 0) {
+                const all_results: IResults = {};
+
+                for (const match of matches) {
+                    if (all_results[match.base_row_id]) {
+                        all_results[match.base_row_id].matched_rows[match.updated_row_id] = {
+                            updated_row: data.updated.find(d => d.id === match.updated_row_id)!,
+                            rejected_at: match.rejected_at,
+                            matched_columns: match.confirmations.map(c => ({
+                                mapping: column_mappings.find(m => m.base_column === c.base_column && m.updated_column === c.updated_column)!,
+                                base_col: c.base_column,
+                                base_value: '',
+                                updated_col: c.updated_column,
+                                updated_value: '',
+                                confidence: c.confidence,
+                            })),
+                        }
+                    } else {
+                        const base_row = data.base.find(d => d.id === match.base_row_id)!;
+                        const updated_row = data.updated.find(d => d.id === match.updated_row_id)!;
+
+                        console.log('>>>>> match rejected_at', match.rejected_at);
+
+                        all_results[match.base_row_id] = {
+                            base_row,
+                            confirmed_row: null,
+                            rejected_at: match.rejected_at,
+                            confirmed_at: match.confirmed_at,
+                            matched_rows: {
+                                [updated_row.id]: {
+                                    updated_row,
+                                    rejected_at: match.rejected_at,
+                                    matched_columns: match.confirmations.map(c => ({
+                                        mapping: column_mappings.find(m => m.base_column === c.base_column && m.updated_column === c.updated_column)!,
+                                        base_col: c.base_column,
+                                        base_value: '',
+                                        updated_col: c.updated_column,
+                                        updated_value: '',
+                                        confidence: c.confidence,
+                                    })),
+                                }
+                            }
+                        }
+                    }
+                }
+
+                results = all_results;
+            }
+        } catch (e) {
+            error = `Failed to load workflow matches: ${e}`;
         }
-
-        console.log('>>>>> confirming result', $state.snapshot(result));
-
-        result.confirmed_row = result.matched_rows[updated_row_id].updated_row;
-        result.rejected = false;
     }
 
-    const on_reject_result = (updated_row_id: string, result: IResult) => () => {
-        if (result.confirmed_row) {
-            return;
+    const on_confirm_result = (updated_row_id: string, result: IResult) => async () => {
+        try {
+            if (result.confirmed_at) {
+                return;
+            }
+
+            const now = dayjs.utc().toISOString();
+            result.confirmed_row = result.matched_rows[updated_row_id].updated_row;
+            result.confirmed_at = now;
+            result.rejected_at = null;
+
+            await db.workflow_matches.where('base_row_id')
+                .equals(result.base_row.id)
+                .and(m => m.workflow_id === workflow!.id && m.updated_row_id === updated_row_id)
+                .modify(m => {
+                    m.confirmed_at = now;
+                    m.rejected_at = null;
+                    m.updated_at = now;
+                });
+            
+            // reject any other matches for this base row
+            await db.workflow_matches.where('base_row_id')
+                .equals(result.base_row.id)
+                .and(m => m.workflow_id === workflow!.id && m.updated_row_id !== updated_row_id)
+                .modify(m => {
+                    m.confirmed_at = null;
+                    m.rejected_at = now;
+                    m.updated_at = now;
+                });
+        } catch (e) {
+            error = `Failed to confirm result: ${e}`;
         }
+    }
 
-        result.matched_rows[updated_row_id].rejected = true;
+    const on_reject_result = (updated_row_id: string, result: IResult) => async () => {
+        try {            
+            if (result.confirmed_at) {
+                return;
+            }
 
-        const rejected_rows = Object.values(result.matched_rows).filter(r => r.rejected);
-        if (rejected_rows.length === Object.keys(result.matched_rows).length) {
-            result.rejected = true;
+            const now = dayjs.utc().toISOString();
+            result.matched_rows[updated_row_id].rejected_at = now;
+
+            await db.workflow_matches.where('base_row_id')
+                .equals(result.base_row.id)
+                .and(m => m.workflow_id === workflow!.id && m.updated_row_id === updated_row_id)
+                .modify(m => {
+                    m.rejected_at = now;
+                    m.confirmed_at = null;
+                    m.updated_at = now;
+                });
+
+            const rejected_rows = Object.values(result.matched_rows).filter(r => r.rejected_at);
+            if (rejected_rows.length === Object.keys(result.matched_rows).length) {
+                result.rejected_at = now;
+            }
+        } catch (e) {
+            error = `Failed to reject result: ${e}`;
         }
     }
 
@@ -191,7 +301,7 @@
                 'name',
             ]
 
-            const all_results: Record<string, any> = {};
+            const all_results: IResults = {};
 
             for (const base_row of data.base) {
                 for (const updated_row of data.updated) {
@@ -201,6 +311,10 @@
                         if (mapping?.match) {
                             const base_value = base_row.data[mapping.base_column as keyof typeof base_row.data] as string;
                             const updated_value = updated_row.data[mapping.updated_column as keyof typeof updated_row.data] as string;
+
+                            if (!base_value || !updated_value) {
+                                continue;
+                            }
 
                             let jaro_winkler_distance: number | null = null;
                             let levenshtein_distance: number | null = null;
@@ -228,10 +342,12 @@
                                     all_results[base_row.id] = {
                                         base_row: base_row,
                                         confirmed_row: null,
-                                        rejected: false,
+                                        rejected_at: null,
+                                        confirmed_at: null,
                                         matched_rows: {
                                             [updated_row.id]: {
                                                 updated_row: updated_row,
+                                                rejected_at: null,
                                                 matched_columns: [],
                                             }
                                         }
@@ -241,6 +357,7 @@
                                 if (!all_results[base_row.id].matched_rows[updated_row.id]) {
                                     all_results[base_row.id].matched_rows[updated_row.id] = {
                                         updated_row,
+                                        rejected_at: null,
                                         matched_columns: [],
                                     };
                                 }
@@ -251,11 +368,54 @@
                                     base_value: base_value,
                                     updated_col: mapping.updated_column,
                                     updated_value: updated_value,
-                                    confidence: jaro_winkler_distance ?? levenshtein_distance,
+                                    confidence: jaro_winkler_distance ?? levenshtein_distance ?? 0,
                                 });
+                    
+                                const existing_match = await db.workflow_matches.where('workflow_id')
+                                    .equals(workflow.id)
+                                    .and(m => m.base_row_id === base_row.id && m.updated_row_id === updated_row.id)
+                                    .first();
+
+                                // TODO: save the match to the database
+                                const now = dayjs.utc().toISOString();
+                                
+                                if (existing_match) {
+                                    await db.workflow_matches.update(existing_match.id, {
+                                        workflow_id: workflow.id,
+                                        base_file_id: files.base!.id,
+                                        updated_file_id: files.updated!.id,
+                                        base_row_id: base_row.id,
+                                        updated_row_id: updated_row.id,
+                                        rejected_at: null,
+                                        confirmed_at: null,
+                                        confirmations: all_results[base_row.id].matched_rows[updated_row.id].matched_columns.map(c => ({
+                                            base_column: c.base_col,
+                                            updated_column: c.updated_col,
+                                            confidence: c.confidence,
+                                        })),
+                                        updated_at: now,
+                                    });
+                                } else {
+                                    await db.workflow_matches.add({
+                                        workflow_id: workflow.id,
+                                        base_file_id: files.base!.id,
+                                        updated_file_id: files.updated!.id,
+                                        base_row_id: base_row.id,
+                                        updated_row_id: updated_row.id,
+                                        rejected_at: null,
+                                        confirmed_at: null,
+                                        confirmations: all_results[base_row.id].matched_rows[updated_row.id].matched_columns.map(c => ({
+                                            base_column: c.base_col,
+                                            updated_column: c.updated_col,
+                                            confidence: c.confidence,
+                                        })),
+                                        created_at: now,
+                                        updated_at: now,
+                                    });
+                                }
                             }
                         }
-                    }   
+                    }
                 }
             }
 
@@ -288,7 +448,16 @@
             </section>
         {:else}
             <section>
-                <h1>{workflow.name} - Process Data</h1>
+                <h1>{workflow.name} - Review Data</h1>
+
+                <p>
+                    Here, you'll need to review any rows that were matched between the base and updated files based on your configured
+                    threshold and column mappings. Confirmed matches will be updated in the base file. Rejected matches will be ignored.
+                </p>
+
+                <p>
+                    <b>Note:</b> If you are not sure about the match, you can always change it later.
+                </p>
             </section>
 
             <section>
@@ -340,16 +509,16 @@
             <section class="process-data-container">
                 <div class="results-container">
                     {#if Object.keys(results).length}
-                        {#each Object.entries(results) as [key, result] (key)}
+                        {#each Object.values(results).sort((a, b) => a.base_row.row - b.base_row.row) as result (result.base_row.id)}
                             <article
                                 class="result-container"
-                                class:confirmed={result.confirmed_row}
-                                class:rejected={result.rejected}
+                                class:confirmed={result.confirmed_at}
+                                class:rejected={result.rejected_at}
                             >
                                 <div>
-                                    {#if result.confirmed_row}
+                                    {#if result.confirmed_at}
                                         <p>Match confirmed. This base record will be updated with the confirmed data.</p>
-                                    {:else if result.rejected}
+                                    {:else if result.rejected_at}
                                         {#if Object.keys(result.matched_rows).length > 1}
                                             <p>All potential matches rejected. No changes will be made to the base record.</p>
                                         {:else}
@@ -364,7 +533,7 @@
                                     <div class="result-row-data-container">
                                         <div
                                             class="result-row"
-                                            class:result-row-base={!result.confirmed_row}
+                                            class:result-row-base={!result.confirmed_at}
                                         >
                                             <div class="result-row-column">
                                                 <span>Base</span>
@@ -377,7 +546,7 @@
                                                     </div>
                                                     
                                                     <div class="result-row-column-value">
-                                                        {row_value}
+                                                        {row_value || '--'}
                                                     </div>
                                                 </div>
                                             {/each}
@@ -388,7 +557,7 @@
                                 {#each Object.entries(result.matched_rows) as [updated_row_id, updated_row] (updated_row_id)}
                                     {#if !result.confirmed_row || (result.confirmed_row && updated_row_id === result.confirmed_row.id)}
                                         <div class="result-row-container">
-                                            {#if !updated_row.rejected && !result.rejected && !result.confirmed_row}
+                                            {#if !updated_row.rejected_at && !result.rejected_at && !result.confirmed_at}
                                                 <div class="result-confidence-container">
                                                     <div class="result-controls">
                                                         <Button
@@ -436,7 +605,7 @@
                                                         {/each}
                                                     </div>
                                                 </div>
-                                            {:else if updated_row.rejected}
+                                            {:else if updated_row.rejected_at}
                                                 <div class="rejected-label">
                                                     Rejected
                                                 </div>
@@ -447,21 +616,21 @@
                                             {/if}
         
                                             <div class="result-row-data-container"
-                                                class:rejected={updated_row.rejected || (result.confirmed_row && updated_row_id !== result.confirmed_row.id)}
+                                                class:rejected={updated_row.rejected_at || (result.confirmed_row && updated_row_id !== result.confirmed_row.id)}
                                             >
                                                 <div class="result-row">
                                                     <div class="result-row-column">
                                                         <span>Updated</span>
                                                     </div>
                                                 
-                                                    {#each Object.entries(updated_row.updated_row.data) as [row_key, row_value], index (row_key)}
+                                                    {#each Object.entries(updated_row.updated_row.data) as [row_key, row_value] (row_key)}
                                                         <div class="result-row-column">
                                                             <div class="result-row-column-key">
                                                                 {row_key}
                                                             </div>
                                                             
                                                             <div class="result-row-column-value">
-                                                                {row_value}
+                                                                {row_value || '--'}
                                                             </div>
                                                         </div>
                                                     {/each}
@@ -473,8 +642,10 @@
                             </article>
                         {/each}
                     {:else}
-                        <div>
-                            no matched record found...
+                        <div class="no-matches-found">
+                            <div>
+                                No rows were matched between the base and updated files.
+                            </div>
                         </div>
                     {/if}
                 </div>
@@ -513,10 +684,6 @@
 </div>
 
 <style>
-    h1 {
-        margin-bottom: 0;
-    }
-
     .summary-container {
         display: flex;
         flex-direction: row;
@@ -760,6 +927,20 @@
         border-bottom: 1px solid var(--primary-400);
     }
 
+    .no-matches-found {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 10rem;
+        padding: 1rem;
+
+        div {
+            padding: 2rem;
+            border: 1px solid var(--accent1-400);
+            border-radius: 0.5rem;
+        }
+    }
+
     .controls-container {
         display: flex;
         flex-direction: row;
@@ -767,11 +948,6 @@
         justify-content: space-between;
         gap: 1rem;
         padding-top: 1rem;
-
-        .disabled {
-            opacity: 0.5;
-            pointer-events: none;
-        }
     }
 
     .alt-container {
