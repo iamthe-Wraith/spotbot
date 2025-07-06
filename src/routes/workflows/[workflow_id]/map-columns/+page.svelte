@@ -5,11 +5,11 @@
     import { page } from "$app/state";
 	import Button from "$lib/components/Button.svelte";
 	import Checkbox from "$lib/components/Checkbox.svelte";
-	import ComboBox from "$lib/components/ComboBox.svelte";
+	import ComboBox, { type IComboBoxOption } from "$lib/components/ComboBox.svelte";
 	import Link from "$lib/components/Link.svelte";
 	import WithTooltip from "$lib/components/WithTooltip.svelte";
     import WorkflowSteps from "$lib/components/WorkflowSteps.svelte";
-	import { db, WORKFLOW_STATUS, type IWorkflow, type IWorkflowFile } from "$lib/state/db.svelte";
+	import { db, WORKFLOW_STATUS, type IWorkflow, type IWorkflowColumnMapping, type IWorkflowFile } from "$lib/state/db.svelte";
 	import { toast } from "$lib/state/toast.svelte";
 
     dayjs.extend(utc);
@@ -19,11 +19,18 @@
         updated: IWorkflowFile | null;
     }
     
+    interface IMapping {
+        match: boolean;
+        base_column: string;
+        updated_column_option: IComboBoxOption;
+    }
+    
     let workflow = $state<IWorkflow | null>(null);
     let files = $state<IFiles>({
         base: null,
         updated: null,
     });
+    let mappings = $state<IMapping[]>([]);
 
     let options = $derived.by(() => {
         if (!files.updated?.columns) {
@@ -58,7 +65,44 @@
     onMount(async () => {
         await load_workflow();
         await load_workflow_files();
+        await load_column_mappings();
     });
+
+    const load_column_mappings = async () => {
+        try {
+            if (workflow && files.base && files.updated && !error) {
+                const stored_mappings = await db.workflow_column_mappings.where('workflow_id')
+                    .equals(workflow.id)
+                    .toArray();
+
+                for (const column of files.base.columns) {
+                    const mapping = stored_mappings.find(m => m.base_column === column);
+
+                    if (mapping) {
+                        mappings.push({
+                            match: mapping.match,
+                            base_column: mapping.base_column,
+                            updated_column_option: options.find(o => o.value.toLocaleLowerCase() === mapping.updated_column.toLocaleLowerCase()) ?? {
+                                value: '',
+                                text: mapping.updated_column,
+                            },
+                        });
+                    } else {
+                        mappings.push({
+                            match: false,
+                            base_column: column,
+                            updated_column_option: options.find(o => o.value.toLocaleLowerCase() === column.toLocaleLowerCase()) ?? {
+                                value: '',
+                                text: column,
+                            },
+                        });
+                    }
+                }
+            }
+        } catch (err) {
+            error = `Failed to load column mappings: ${(err as Error).message}`
+        }
+    }
 
     const load_workflow = async () => {
         try {
@@ -71,8 +115,8 @@
             } else {
                 error = 'Workflow not found';
             }
-        } catch (e) {
-            error = `Failed to load workflow: ${e}`;
+        } catch (err: unknown) {
+            error = `Failed to load workflow: ${(err as Error).message}`;
         }
     }
 
@@ -88,8 +132,8 @@
                     files.updated = workflow_files.find(f => f.workflow_file_type === 'updated') ?? null;
                 }
             }
-        } catch (e) {
-            error = `Failed to load workflow files: ${e}`;
+        } catch (err: unknown) {
+            error = `Failed to load workflow files: ${(err as Error).message}`;
         }
     }
 
@@ -97,8 +141,6 @@
         e.preventDefault();
         
         error = '';
-
-        const form_data = new FormData(e.target as HTMLFormElement);
 
         try {
             await db.workflow_column_mappings.where('workflow_id')
@@ -108,31 +150,33 @@
             let at_least_one_match = false;
             let at_least_one_updated_column = false;
 
-            for (const column of files.base?.columns ?? []) {
-                const raw_match = form_data.get(`column-${column}-match`) as string;
-                const match = raw_match === 'on';
-                const updated_column = form_data.get(`updated-column-${column}`) as string;
+            console.log('>>>>> mappings: ', $state.snapshot(mappings));
+
+            for (const mapping of mappings ?? []) {
+                // const raw_match = form_data.get(`column-${mapping.base_column}-match`) as string;
+                // const match = raw_match === 'on';
+                // const updated_column = form_data.get(`updated-column-${mapping.base_column}`) as string;
 
                 const now = dayjs.utc().toISOString();
 
-                if (match) {
+                if (mapping.match) {
                     at_least_one_match = true;
                 }
 
-                if (updated_column) {
+                if (mapping.updated_column_option.value) {
                     at_least_one_updated_column = true;
                 }
 
-                if (match && !updated_column) {
+                if (mapping.match && !mapping.updated_column_option.value) {
                     error = 'Columns must be mapped in order to enabled matching';
                     return;
                 }
 
                 await db.workflow_column_mappings.add({
                     workflow_id: workflow!.id,
-                    base_column: column,
-                    updated_column,
-                    match,
+                    base_column: mapping.base_column,
+                    updated_column: mapping.updated_column_option.value || '',
+                    match: mapping.match,
                     created_at: now,
                     updated_at: now,
                 });
@@ -143,8 +187,8 @@
                 return;
             }
             
-            if (at_least_one_updated_column) {
-                error = 'At least one column must have matching enabled';
+            if (!at_least_one_match) {
+                error = 'At least one set of columns must have matching enabled';
                 return;
             }
 
@@ -226,27 +270,28 @@
                                 Updated Columns
                             </div>
                         </div>
-                        {#each files.base.columns as column}
+                        {#each mappings as mapping}
                             <div class="column-mapping-row">
                                 <div class="column-mapping-row-left">
                                     <div class="column-match-column">
                                         <Checkbox
-                                            id="column-{column}-match"
-                                            name="column-{column}-match"
+                                            id="column-{mapping.base_column}-match"
+                                            name="column-{mapping.base_column}-match"
+                                            bind:checked={mapping.match}
                                         />
                                     </div>
 
                                     <div class="column-name">
-                                        { column }
+                                        { mapping.base_column }
                                     </div>
                                 </div>
 
                                 <div>
                                     <ComboBox
-                                        id="updated-column-{column}"
-                                        name="updated-column-{column}"
+                                        id="updated-column-{mapping.base_column}"
+                                        name="updated-column-{mapping.base_column}"
                                         options={options}
-                                        selected_option={options?.find(c => c.value.toLocaleLowerCase() === column.toLocaleLowerCase())}
+                                        bind:selected_option={mapping.updated_column_option}
                                         placeholder="Select a Column"
                                     />
                                 </div>
