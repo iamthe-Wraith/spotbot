@@ -16,15 +16,20 @@
 
     interface IResult {
         base_row: IWorkflowFileData;
-        updated_row: IWorkflowFileData;
-        matched_columns: {
-            mapping: IWorkflowColumnMapping;
-            base_col: string;
-            base_value: string;
-            updated_col: string;
-            updated_value: string;
-            confidence: number;
-        }[];
+        confirmed_row: IWorkflowFileData | null;
+        rejected: boolean;
+        matched_rows: Record<string, {
+            updated_row: IWorkflowFileData;
+            rejected: boolean;
+            matched_columns: {
+                mapping: IWorkflowColumnMapping;
+                base_col: string;
+                base_value: string;
+                updated_col: string;
+                updated_value: string;
+                confidence: number;
+            }[];
+        }>
     }
 
     type IResults = Record<string, IResult>;
@@ -44,6 +49,28 @@
     });
 
     let results = $state<IResults>({});
+    let summary = $derived.by(() => {
+        if (!results) {
+            return {
+                potential_matches: 0,
+                confirmed_matches: 0,
+                rejected_matches: 0,
+                new_records: 0,
+            };
+        }
+
+        const potential_matches = Object.keys(results).filter(r => !results[r].rejected && !results[r].confirmed_row).length;
+        const confirmed_matches = Object.values(results).filter(r => r.confirmed_row).length;
+        const rejected_matches = Object.values(results).filter(r => r.rejected).length;
+        const new_records = data.updated.length - confirmed_matches;
+
+        return {
+            potential_matches,
+            confirmed_matches,
+            rejected_matches,
+            new_records,
+        };
+    });
 
     let loading = $state(true);
     let processing = $state(false);
@@ -130,12 +157,28 @@
         }
     }
 
-    const on_confirm_result = (result: IResult) => () => {
+    const on_confirm_result = (updated_row_id: string, result: IResult) => () => {
+        if (result.confirmed_row) {
+            return;
+        }
+
         console.log('>>>>> confirming result', $state.snapshot(result));
+
+        result.confirmed_row = result.matched_rows[updated_row_id].updated_row;
+        result.rejected = false;
     }
 
-    const on_reject_result = (result: IResult) => () => {
-        console.log('>>>>> rejecting result', $state.snapshot(result));
+    const on_reject_result = (updated_row_id: string, result: IResult) => () => {
+        if (result.confirmed_row) {
+            return;
+        }
+
+        result.matched_rows[updated_row_id].rejected = true;
+
+        const rejected_rows = Object.values(result.matched_rows).filter(r => r.rejected);
+        if (rejected_rows.length === Object.keys(result.matched_rows).length) {
+            result.rejected = true;
+        }
     }
 
     const process_data = async () => {
@@ -181,15 +224,28 @@
                                 (jaro_winkler_distance && jaro_winkler_distance > (workflow.confidence_threshold / 100)) ||
                                 (levenshtein_distance && levenshtein_distance > (workflow.confidence_threshold / 100))
                             ) {
-                                if (!all_results[`${base_row.id}|${updated_row.id}`]) {
-                                    all_results[`${base_row.id}|${updated_row.id}`] = {
+                                if (!all_results[base_row.id]) {
+                                    all_results[base_row.id] = {
                                         base_row: base_row,
-                                        updated_row: updated_row,
+                                        confirmed_row: null,
+                                        rejected: false,
+                                        matched_rows: {
+                                            [updated_row.id]: {
+                                                updated_row: updated_row,
+                                                matched_columns: [],
+                                            }
+                                        }
+                                    };
+                                }
+
+                                if (!all_results[base_row.id].matched_rows[updated_row.id]) {
+                                    all_results[base_row.id].matched_rows[updated_row.id] = {
+                                        updated_row,
                                         matched_columns: [],
                                     };
                                 }
 
-                                all_results[`${base_row.id}|${updated_row.id}`].matched_columns.push({
+                                all_results[base_row.id].matched_rows[updated_row.id].matched_columns.push({
                                     mapping,
                                     base_col: mapping.base_column,
                                     base_value: base_value,
@@ -235,100 +291,185 @@
                 <h1>{workflow.name} - Process Data</h1>
             </section>
 
+            <section>
+                <h2>Summary</h2>
+
+                <div class="summary-container">
+                    <div class="summary-item">
+                        <div class="summary-item-label">
+                            Potential Matches
+                        </div>
+
+                        <div class="summary-item-value">
+                            {summary.potential_matches}
+                        </div>
+                    </div>
+
+                    <div class="summary-item">
+                        <div class="summary-item-label"> 
+                            Confirmed Matches
+                        </div>
+
+                        <div class="summary-item-value">
+                            {summary.confirmed_matches}
+                        </div>
+                    </div>
+
+                    <div class="summary-item">
+                        <div class="summary-item-label"> 
+                            Rejected Matches
+                        </div>
+
+                        <div class="summary-item-value">
+                            {summary.rejected_matches}
+                        </div>
+                    </div>
+
+                    <div class="summary-item">
+                        <div class="summary-item-label">
+                            New Records
+                        </div>
+
+                        <div class="summary-item-value">
+                            {summary.new_records}
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <section class="process-data-container">
                 <div class="results-container">
                     {#if Object.keys(results).length}
                         {#each Object.entries(results) as [key, result] (key)}
-                            <article class="result-container">
-                                <div class="result-confidence-container">
-                                    <div class="result-controls">
-                                        <Button
-                                            onclick={on_confirm_result(result)}
+                            <article
+                                class="result-container"
+                                class:confirmed={result.confirmed_row}
+                                class:rejected={result.rejected}
+                            >
+                                <div>
+                                    {#if result.confirmed_row}
+                                        <p>Match confirmed. This base record will be updated with the confirmed data.</p>
+                                    {:else if result.rejected}
+                                        {#if Object.keys(result.matched_rows).length > 1}
+                                            <p>All potential matches rejected. No changes will be made to the base record.</p>
+                                        {:else}
+                                            <p>Potential match rejected. No changes will be made to the base record.</p>
+                                        {/if}
+                                    {:else if Object.keys(result.matched_rows).length > 1}
+                                        <p>{`This record has ${Object.keys(result.matched_rows).length} potential matches. Please review the data and select the correct match.`}</p>
+                                    {:else}
+                                        <p>{`Potential match found. Please review the data and confirm or reject the match.`}</p>
+                                    {/if}
+
+                                    <div class="result-row-data-container">
+                                        <div
+                                            class="result-row"
+                                            class:result-row-base={!result.confirmed_row}
                                         >
-                                            Confirm
-                                        </Button>
-
-                                        <Button
-                                            onclick={on_reject_result(result)}
-                                            theme="light-text"
-                                        >
-                                            Reject
-                                        </Button>
-                                    </div>
-
-                                    <div class="result-confidence-values-container">
-                                        {#each result.matched_columns as matched_column (matched_column.mapping.id)}
-                                            <div class="result-confidence-value-container">
-                                                <div class="result-confidence-value">
-                                                    <div class="result-confidence-value-column">
-                                                        <div>(base)</div>
-                                                        <div>(updated)</div>
-                                                    </div>
-    
-                                                    <div class="result-confidence-value-column">
-                                                        <div>{matched_column.base_col}</div>
-                                                        <div>{matched_column.updated_col}</div>
-                                                    </div>
-
-                                                    <div class="result-confidence-value-column">
-                                                        <div>
-                                                            <div>{matched_column.base_value}</div>
-                                                        </div>
-                                                        <div>
-                                                            <div>{matched_column.updated_value}</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div class="result-confidence">
-                                                    {round(matched_column.confidence * 100, 2)}%
-                                                </div>
-                                            </div>
-                                        {/each}
-                                    </div>
-                                </div>
-
-                                <div class="result-row-container">
-                                    <!-- <div class="h6">Base Data</div> -->
-                                    <div class="result-row">
-                                        <div class="result-row-column">
-                                            <span>Base</span>
-                                        </div>
-
-                                        {#each Object.entries(result.base_row.data) as [row_key, row_value] (row_key)}
                                             <div class="result-row-column">
-                                                <div class="result-row-column-key">
-                                                    {row_key}
-                                                </div>
-                                                
-                                                <div class="result-row-column-value">
-                                                    {row_value}
-                                                </div>
+                                                <span>Base</span>
                                             </div>
-                                        {/each}
-                                    </div>
-                                </div>
 
-                                <div class="result-row-container">
-                                    <!-- <div class="h6">Updated Data</div> -->
-                                    <div class="result-row">
-                                        <div class="result-row-column">
-                                            <span>Updated</span>
+                                            {#each Object.entries(result.base_row.data) as [row_key, row_value] (row_key)}
+                                                <div class="result-row-column">
+                                                    <div class="result-row-column-key">
+                                                        {row_key}
+                                                    </div>
+                                                    
+                                                    <div class="result-row-column-value">
+                                                        {row_value}
+                                                    </div>
+                                                </div>
+                                            {/each}
                                         </div>
-
-                                        {#each Object.entries(result.updated_row.data) as [row_key, row_value] (row_key)}
-                                            <div class="result-row-column">
-                                                <div class="result-row-column-key">
-                                                    {row_key}
-                                                </div>
-                                                
-                                                <div class="result-row-column-value">
-                                                    {row_value}
-                                                </div>
-                                            </div>
-                                        {/each}
                                     </div>
                                 </div>
+
+                                {#each Object.entries(result.matched_rows) as [updated_row_id, updated_row] (updated_row_id)}
+                                    {#if !result.confirmed_row || (result.confirmed_row && updated_row_id === result.confirmed_row.id)}
+                                        <div class="result-row-container">
+                                            {#if !updated_row.rejected && !result.rejected && !result.confirmed_row}
+                                                <div class="result-confidence-container">
+                                                    <div class="result-controls">
+                                                        <Button
+                                                               onclick={on_confirm_result(updated_row_id, result)}
+                                                        >
+                                                            Confirm
+                                                        </Button>
+            
+                                                        <Button
+                                                            onclick={on_reject_result(updated_row_id, result)}
+                                                            theme="light-text"
+                                                        >
+                                                            Reject
+                                                        </Button>
+                                                    </div>
+            
+                                                    <div class="result-confidence-values-container">
+                                                        {#each updated_row.matched_columns as matched_column (matched_column.mapping.id)}
+                                                            <div class="result-confidence-value-container">
+                                                                <div class="result-confidence-value">
+                                                                    <div class="result-confidence-value-column">
+                                                                        <div>(base)</div>
+                                                                        <div>(updated)</div>
+                                                                    </div>
+            
+                                                                    <div class="result-confidence-value-column">
+                                                                        <div>{matched_column.base_col}</div>
+                                                                        <div>{matched_column.updated_col}</div>
+                                                                    </div>
+            
+                                                                    <div class="result-confidence-value-column">
+                                                                        <div>
+                                                                            <div>{matched_column.base_value}</div>
+                                                                        </div>
+                                                                        <div>
+                                                                            <div>{matched_column.updated_value}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+            
+                                                                <div class="result-confidence">
+                                                                    {round(matched_column.confidence * 100, 2)}%
+                                                                </div>
+                                                            </div>
+                                                        {/each}
+                                                    </div>
+                                                </div>
+                                            {:else if updated_row.rejected}
+                                                <div class="rejected-label">
+                                                    Rejected
+                                                </div>
+                                            {:else if result.confirmed_row && updated_row_id === result.confirmed_row.id}
+                                                <div class="confirmed-label">
+                                                    Confirmed
+                                                </div>
+                                            {/if}
+        
+                                            <div class="result-row-data-container"
+                                                class:rejected={updated_row.rejected || (result.confirmed_row && updated_row_id !== result.confirmed_row.id)}
+                                            >
+                                                <div class="result-row">
+                                                    <div class="result-row-column">
+                                                        <span>Updated</span>
+                                                    </div>
+                                                
+                                                    {#each Object.entries(updated_row.updated_row.data) as [row_key, row_value], index (row_key)}
+                                                        <div class="result-row-column">
+                                                            <div class="result-row-column-key">
+                                                                {row_key}
+                                                            </div>
+                                                            
+                                                            <div class="result-row-column-value">
+                                                                {row_value}
+                                                            </div>
+                                                        </div>
+                                                    {/each}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {/if}
+                                {/each}
                             </article>
                         {/each}
                     {:else}
@@ -376,6 +517,40 @@
         margin-bottom: 0;
     }
 
+    .summary-container {
+        display: flex;
+        flex-direction: row;
+        align-items: stretch;
+        justify-content: flex-start;
+        gap: 1rem;
+    }
+
+    .summary-item {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        border: 1px solid var(--primary-400);
+        border-radius: 0.25rem;
+        overflow: hidden;
+    }
+
+    .summary-item-label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.15rem 0.5rem;
+        font-size: 0.6rem;
+        background: var(--primary-400);
+    }
+
+    .summary-item-value {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.15rem 0.5rem;
+        font-size: 1.75rem;
+    }
+
     .workflow-container {
         display: flex;
         flex: 1;
@@ -402,7 +577,7 @@
         flex-direction: column;
         align-items: stretch;
         justify-content: flex-start;
-        gap: 1rem;
+        gap: 1.5rem;
     }
 
     .result-container {
@@ -411,10 +586,19 @@
         align-items: stretch;
         justify-content: flex-start;
         gap: 1rem;
-        background: var(--primary-50);
+        background-image: linear-gradient(to bottom, var(--primary-300), var(--primary-200));
+        border-top: 1px solid var(--accent1-300);
         border-radius: 0.5rem;
         padding: 1rem;
         overflow: auto;
+
+        &.confirmed {
+            background-image: linear-gradient(to bottom, var(--success-300), var(--success-100));
+        }
+
+        &.rejected {
+            opacity: 0.4;
+        }
     }
 
     .result-confidence-container {
@@ -428,6 +612,14 @@
         align-items: center;
         justify-content: flex-start;
         gap: 1rem;
+    }
+
+    .result-row-container {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
+        gap: 0.25rem;
     }
 
     .result-confidence-values-container {
@@ -445,7 +637,7 @@
         flex-shrink: 0;
         align-items: stretch;
         justify-content: flex-start;
-        border: 1px solid var(--primary-300);
+        border: 1px solid var(--primary-400);
         border-radius: 0.25rem;
         overflow: hidden;
     }
@@ -495,12 +687,26 @@
         align-items: center;
         justify-content: center;
         padding: 0.5rem;
-        background: var(--primary-300);
+        background: var(--primary-400);
     }
 
-    .result-row-container {
+    .result-row-data-container {
         display: flex;
         flex-direction: column;
+
+        &.rejected {
+            opacity: 0.5;
+        }
+    }
+
+    .confirmed-label {
+        font-size: 0.75rem;
+        color: var(--success-700);
+    }
+
+    .rejected-label {
+        font-size: 0.75rem;
+        color: var(--danger-700);
     }
 
     .result-row {
@@ -509,8 +715,13 @@
         flex-wrap: no-wrap;
         align-items: center;
         justify-content: flex-start;
-        border: 1px solid var(--primary-300);
+        background: var(--primary-600);
+        border: 1px solid var(--primary-400);
         border-radius: 0.25rem;
+    }
+
+    .result-row-base {
+        margin-bottom: 1rem;
     }
 
     .result-row-column:first-child {
@@ -519,7 +730,7 @@
         align-items: center;
         justify-content: center;
         width: 1rem;
-        background: var(--primary-300);
+        background: var(--primary-400);
         border-right: none;
 
         span {
@@ -535,18 +746,18 @@
     }
 
     .result-row-column:not(:last-child) {
-        border-right: 1px solid var(--primary-300);
+        border-right: 1px solid var(--primary-400);
     }
 
     .result-row-column-key,
     .result-row-column-value {
         padding: 0.15rem 0.5rem;
+        color: var(--primary-100);
     }
 
     .result-row-column-key {
         font-weight: 600;
-        border-bottom: 1px solid var(--primary-300);
-        color: var(--primary-300);
+        border-bottom: 1px solid var(--primary-400);
     }
 
     .controls-container {
