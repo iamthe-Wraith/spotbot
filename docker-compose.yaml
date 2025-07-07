@@ -1,0 +1,6 @@
+services:
+  app:
+    image: iamthewraith/tydalwave:latest
+    ports:
+      - "3005:3000"
+    restart: always
