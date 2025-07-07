@@ -68,7 +68,7 @@ interface IWorkflowMatch {
     updated_at: string;
 }
 
-const db = $state(new Dexie('tydal') as Dexie & {
+const db = $state(new Dexie('tydalwave') as Dexie & {
     workflows: EntityTable<
         IWorkflow,
         'id'

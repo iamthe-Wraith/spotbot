@@ -3,8 +3,8 @@
 </script>
 
 <section>
-    <h1>Tydal</h1>
-    <p>Tydal makes stitching your data together easy.</p>
+    <h1>TydalWave</h1>
+    <p>TydalWave makes stitching your data together easy.</p>
 </section>
 
 <section class="flex-center">

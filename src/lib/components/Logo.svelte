@@ -1,6 +1,6 @@
 <a href="/">
     <i class="fa-duotone fa-solid fa-wave"></i>
-    <div>Tydal</div>
+    <div>TydalWave</div>
 </a>
 
 <style>

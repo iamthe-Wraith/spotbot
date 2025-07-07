@@ -22,7 +22,7 @@ import Logo from '$lib/components/Logo.svelte';
 </main>
 
 <footer>
-    <p>Tydal</p>
+    <p>TydalWave</p>
     <p>Copyright {new Date().getFullYear()}</p>
 </footer>
 
