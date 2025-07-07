@@ -267,6 +267,12 @@
                     m.rejected_at = now;
                     m.updated_at = now;
                 });
+
+            if (!Object.values(results).filter(r => !r.confirmed_at && !r.rejected_at).length) {
+                await db.workflows.update(workflow!.id, {
+                    status: WORKFLOW_STATUS.MATCHES_REVIEWED,
+                });
+            }
         } catch (e) {
             error = `Failed to confirm result: ${e}`;
         }
@@ -293,6 +299,12 @@
             const rejected_rows = Object.values(result.matched_rows).filter(r => r.rejected_at);
             if (rejected_rows.length === Object.keys(result.matched_rows).length) {
                 result.rejected_at = now;
+            }
+
+            if (!Object.values(results).filter(r => !r.confirmed_at && !r.rejected_at).length) {
+                await db.workflows.update(workflow!.id, {
+                    status: WORKFLOW_STATUS.MATCHES_REVIEWED,
+                });
             }
         } catch (e) {
             error = `Failed to reject result: ${e}`;
@@ -518,7 +530,6 @@
                 <div class="results-container">
                     {#if Object.keys(results).length}
                         {#each Object.values(results).sort((a, b) => a.base_row.row - b.base_row.row) as result (result.base_row.id)}
-                            <div>confirmed: {result.confirmed_at ?? 'no confirmed...'}</div>
                             <article
                                 class="result-container"
                                 class:confirmed={result.confirmed_at}
@@ -669,10 +680,10 @@
 
                     <span class:disabled={Object.values(results).filter(r => !r.confirmed_at && !r.rejected_at).length}>
                         <Link
-                            href={`/workflows/${workflow.id}/review-results`}
+                            href={`/workflows/${workflow.id}/results`}
                             theme="primary"
                         >
-                            Review Results
+                            View Results
                         </Link>
                     </span>
                 </div>

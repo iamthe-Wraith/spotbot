@@ -25,6 +25,7 @@
 		"@sveltejs/vite-plugin-svelte": "^5.0.0",
 		"@types/d3": "^7.4.3",
 		"@types/node": "^24.0.10",
+		"@types/papaparse": "^5.3.16",
 		"@vitest/browser": "^3.2.3",
 		"eslint": "^9.18.0",
 		"eslint-config-prettier": "^10.0.1",
@@ -44,6 +45,7 @@
 	"dependencies": {
 		"d3": "^7.9.0",
 		"dayjs": "^1.11.13",
-		"dexie": "^4.0.11"
+		"dexie": "^4.0.11",
+		"papaparse": "^5.5.3"
 	}
 }

@@ -319,7 +319,7 @@
 
                     <span class:disabled={!columns_mapped}>
                         <Link
-                            href={columns_mapped ? `/workflows/${workflow.id}/review-mapped` : '#'}
+                            href={columns_mapped ? `/workflows/${workflow.id}/review-matches` : '#'}
                             theme="primary"
                         >
                             Review Data

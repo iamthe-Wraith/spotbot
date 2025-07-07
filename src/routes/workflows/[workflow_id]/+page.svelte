@@ -251,7 +251,6 @@
             >
                 <div class="imports-container-inner">
                     <div class="import-card">
-
                         <div class="import-card-header h2">Base Data</div>
 
                         <p>
@@ -390,6 +389,8 @@
 
         @media (min-width: 768px) {
             flex-direction: row;
+            align-items: stretch;
+            justify-content: center;
         }
     }
 

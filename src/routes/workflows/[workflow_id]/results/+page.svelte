@@ -1,9 +1,11 @@
 <script lang="ts">
-	import { page, updated } from '$app/state';
+    import { onMount } from 'svelte';
+    import Papa from 'papaparse';
+	import { page } from '$app/state';
+	import Button from '$lib/components/Button.svelte';
 	import Link from '$lib/components/Link.svelte';
     import WorkflowSteps from '$lib/components/WorkflowSteps.svelte';
 	import { db, WORKFLOW_STATUS, type IWorkflow, type IWorkflowColumnMapping, type IWorkflowFile, type IWorkflowFileData, type IWorkflowMatch } from '$lib/state/db.svelte.js';
-	import { onMount } from 'svelte';
 
     interface IFiles {
         base: IWorkflowFile | null;
@@ -40,7 +42,27 @@
         get_updated_records();
         get_new_records();
         loading = false;
+
+        if (workflow && !error) {
+            await db.workflows.update(workflow.id, {
+                status: WORKFLOW_STATUS.COMPLETED,
+            });
+        }
     });
+
+    const download_new_records_csv = () => {
+        const csv = Papa.unparse(new_records);
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        window.open(url);
+    }
+
+    const download_updated_records_csv = () => {
+        const csv = Papa.unparse(updated_records);
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        window.open(url);
+    }
 
     const get_new_records = () => {
         const records: object[] = [];
@@ -180,14 +202,14 @@
                         Map Columns
                     </Link>
 
-                    <Link href="/workflows/{workflow.id}/review-mapped" theme="primary">
-                        Review Mapped Columns
+                    <Link href="/workflows/{workflow.id}/review-matches" theme="primary">
+                        Review Matches
                     </Link>
                 </div>
             </section>
         {:else}
             <section>
-                <h1>{workflow.name} - Review Results</h1>
+                <h1>{workflow.name} - Results</h1>
 
                 <p>
                     You're almost done!
@@ -201,7 +223,31 @@
             <section class="results-container">
                 <div class="results-tables-container">
                     <div class="results-table-container updated-results-container">
-                        <h2>Updated Records</h2>
+                        <div class="results-table-container-header">
+                            <div class="results-table-container-header-description">
+                                <h2>Updated Records</h2>
+
+                                <p>
+                                    The following records are rows found in your base file that have been updated by data found in
+                                    your updated file.
+                                </p>
+
+                                <p>
+                                    {updated_records.length} updated record{updated_records.length === 1 ? '' : 's'}
+                                </p>
+                            </div>
+
+                            <div class="results-table-container-header-controls">
+                                <Button
+                                    nowrap
+                                    theme="accent1"
+                                    size="small"
+                                    onclick={download_updated_records_csv}
+                                >
+                                    Download CSV
+                                </Button>
+                            </div>
+                        </div>
     
                         <table>
                             <tbody>
@@ -229,7 +275,31 @@
                     </div>
     
                     <div class="results-table-container base-results-container">
-                        <h2>New Records</h2>
+                        <div class="results-table-container-header">
+                            <div class="results-table-container-header-description">
+                                <h2>New Records</h2>
+
+                                <p>
+                                    The following records are rows found in your updated file that were not able to be matched to
+                                    any rows found in your base file. Therefore, these are all new records.
+                                </p>
+
+                                <p>
+                                    {new_records.length} new record{new_records.length === 1 ? '' : 's'}
+                                </p>
+                            </div>
+
+                            <div class="results-table-container-header-controls">
+                                <Button
+                                    nowrap
+                                    theme="accent1"
+                                    size="small"
+                                    onclick={download_new_records_csv}
+                                >
+                                    Download CSV
+                                </Button>
+                            </div>
+                        </div>
 
                         <table>
                             <tbody>
@@ -259,10 +329,10 @@
 
                 <div class="controls-container">
                     <Link
-                        href="/workflows/{workflow.id}/review-mapped"
+                        href="/workflows/{workflow.id}/review-matches"
                         theme="primary-text"
                     >
-                        Back to Reviewing Mapped Columns
+                        Back to Reviewing Matches
                     </Link>
 
                     <span class:disabled={true}>
@@ -306,8 +376,34 @@
         flex-direction: column;
         align-items: stretch;
         justify-content: flex-start;
-        gap: 1rem;
+        gap: 2rem;
         overflow: auto;
+    }
+
+    .results-table-container {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
+        gap: 0.25rem;
+        padding: 1rem;
+        background-image: linear-gradient(to bottom, var(--primary-300), var(--primary-200));   
+        border-top: 1px solid var(--accent1-300);
+        border-radius: 0.5rem;
+    }
+
+    .results-table-container-header-description p {
+        &:last-child {
+            margin: 0;
+        }
+    }
+
+    .results-table-container-header {
+        display: flex;
+        flex-direction: row;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 3rem;
     }
 
     .results-table-container table {

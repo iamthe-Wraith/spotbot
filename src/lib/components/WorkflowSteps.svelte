@@ -16,8 +16,8 @@
 
     let { workflow }: IWorkflowStepsProps = $props();
 
-    let steps = $derived.by(() => {
-        const _steps: IStep[] = [
+    let steps = $derived.by((): IStep[] => {
+        return [
             {
                 name: 'Workflow Created',
                 url: `/workflows?workflow_id=${workflow.id}`,
@@ -30,8 +30,7 @@
                 selected: page.url.pathname === `/workflows/${workflow.id}`,
                 completed: workflow?.status === WORKFLOW_STATUS.FILES_UPLOADED ||
                     workflow?.status === WORKFLOW_STATUS.COLUMNS_MAPPED ||
-                    workflow?.status === WORKFLOW_STATUS.MAPPED_COLUMNS_REVIEWED ||
-                    workflow?.status === WORKFLOW_STATUS.RESULTS_REVIEWED ||
+                    workflow?.status === WORKFLOW_STATUS.MATCHES_REVIEWED ||
                     workflow?.status === WORKFLOW_STATUS.COMPLETED,
             },
             {
@@ -39,34 +38,23 @@
                 url: `/workflows/${workflow.id}/map-columns`,
                 selected: page.url.pathname === `/workflows/${workflow.id}/map-columns`,
                 completed: workflow?.status === WORKFLOW_STATUS.COLUMNS_MAPPED ||
-                    workflow?.status === WORKFLOW_STATUS.MAPPED_COLUMNS_REVIEWED ||
-                    workflow?.status === WORKFLOW_STATUS.RESULTS_REVIEWED ||
+                    workflow?.status === WORKFLOW_STATUS.MATCHES_REVIEWED ||
                     workflow?.status === WORKFLOW_STATUS.COMPLETED,
             },
             {
-                name: 'Mapped Columns Reviewed',
-                url: `/workflows/${workflow.id}/review-mapped`,
-                selected: page.url.pathname === `/workflows/${workflow.id}/review-mapped`,
-                completed: workflow?.status === WORKFLOW_STATUS.MAPPED_COLUMNS_REVIEWED ||
-                    workflow?.status === WORKFLOW_STATUS.RESULTS_REVIEWED ||
+                name: 'Matches Reviewed',
+                url: `/workflows/${workflow.id}/review-matches`,
+                selected: page.url.pathname === `/workflows/${workflow.id}/review-matches`,
+                completed: workflow?.status === WORKFLOW_STATUS.MATCHES_REVIEWED ||
                     workflow?.status === WORKFLOW_STATUS.COMPLETED,
             },
             {
-                name: 'Results Reviewed',
-                url: `/workflows/${workflow.id}/review-results`,
-                selected: page.url.pathname === `/workflows/${workflow.id}/review-results`,
-                completed: workflow?.status === WORKFLOW_STATUS.RESULTS_REVIEWED ||
-                    workflow?.status === WORKFLOW_STATUS.COMPLETED,
-            },
-            {
-                name: 'Workflow Completed',
+                name: 'Completed',
                 url: `/workflows/${workflow.id}/results`,
                 selected: page.url.pathname === `/workflows/${workflow.id}/results`,
                 completed: workflow?.status === WORKFLOW_STATUS.COMPLETED,
             },
         ];
-
-        return _steps;
     });
 </script>
 
