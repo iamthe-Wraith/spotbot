@@ -26,25 +26,16 @@ jobs:
                 run: |
                     rm -rf .env
                     echo "PUBLIC_APP_ENV=${{ secrets.PUBLIC_APP_ENV }}" >> .env
-                    echo "PUBLIC_SENTRY_DSN=${{ secrets.PUBLIC_SENTRY_DSN }}" >> .env
-                    echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env
-                    echo "DOMAIN=${{ secrets.DOMAIN }}" >> .env
-                    echo "GH_TOKEN=${{ secrets.GH_TOKEN }}" >> .env
-                    echo "JWT_SESSION_SECRET=${{ secrets.JWT_SESSION_SECRET }}" >> .env
-                    echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
-                    echo "REDIS_URL=${{ secrets.REDIS_URL }}" >> .env
-                    echo "STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}" >> .env
-                    echo "STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}" >> .env
 
             -
                 name: Build docker image
                 run: |
-                    docker build . -t iamthewraith/buzybee:latest
+                    docker build . -t iamthewraith/tydalwave:latest
             
             -
                 name: Push docker image
                 run: |
-                    docker push iamthewraith/buzybee:latest                 
+                    docker push iamthewraith/tydalwave:latest                 
 
             -
                 name: copy docker-compose file to vps
