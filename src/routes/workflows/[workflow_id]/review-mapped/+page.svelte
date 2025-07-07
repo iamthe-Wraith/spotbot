@@ -667,7 +667,14 @@
                         Back to Column Mapping
                     </Link>
 
-                    <div>view results...</div>
+                    <span class:disabled={Object.values(results).filter(r => !r.confirmed_at && !r.rejected_at).length}>
+                        <Link
+                            href={`/workflows/${workflow.id}/review-results`}
+                            theme="primary"
+                        >
+                            Review Results
+                        </Link>
+                    </span>
                 </div>
             </section>
 
@@ -959,6 +966,11 @@
         justify-content: space-between;
         gap: 1rem;
         padding-top: 1rem;
+
+        .disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
     }
 
     .alt-container {
