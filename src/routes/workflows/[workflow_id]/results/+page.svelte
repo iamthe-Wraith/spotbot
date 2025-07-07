@@ -212,11 +212,7 @@
                 <h1>{workflow.name} - Results</h1>
 
                 <p>
-                    You're almost done!
-                </p>
-
-                <p>
-                    Review all your results and click the button below to process your data.
+                    Congratulations! You've completed your workflow. You can now download your results as CSV files.
                 </p>
             </section>
 
@@ -335,14 +331,12 @@
                         Back to Reviewing Matches
                     </Link>
 
-                    <span class:disabled={true}>
-                        <Link
-                            href={`/workflows/${workflow.id}/results`}
-                            theme="primary"
-                        >
-                            Complete Review
-                        </Link>
-                    </span>
+                    <Link
+                        href={`/workflows`}
+                        theme="primary"
+                    >
+                        Back to Workflows List
+                    </Link>
                 </div>
             </section>
         {/if}
