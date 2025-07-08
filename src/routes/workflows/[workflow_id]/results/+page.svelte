@@ -245,29 +245,33 @@
                             </div>
                         </div>
     
-                        <table>
-                            <tbody>
-                                {#each updated_records as record, index (index)}
-                                    {#if index === 0}
+                        <div class="results-table-container-body">
+                            <table>
+                                <thead>
+                                    {#if updated_records[0]}
                                         <tr>
-                                            {#each Object.keys(record) as key}
+                                            {#each Object.keys(updated_records[0]) as key}
                                                 <th>
                                                     {key}
                                                 </th>
                                             {/each}
                                         </tr>
                                     {/if}
+                                </thead>
 
-                                    <tr class="results-table-record">
-                                        {#each Object.values(record) as value}
-                                            <td>
-                                                {value}
-                                            </td>
-                                        {/each}
-                                    </tr>
-                                {/each}
-                            </tbody>
-                        </table>
+                                <tbody>
+                                    {#each updated_records as record, index (index)}                                    
+                                        <tr class="results-table-record">
+                                            {#each Object.values(record) as value}
+                                                <td>
+                                                    {value}
+                                                </td>
+                                            {/each}
+                                        </tr>
+                                    {/each}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
     
                     <div class="results-table-container base-results-container">
@@ -297,29 +301,33 @@
                             </div>
                         </div>
 
-                        <table>
-                            <tbody>
-                                {#each new_records as record, index (index)}
-                                    {#if index === 0}
-                                        <tr>
-                                            {#each Object.keys(record) as key}
+                        <div class="results-table-container-body">
+                            <table>
+                                <thead>
+                                    {#if new_records[0]}
+                                        <tr class="results-table-record">
+                                            {#each Object.keys(new_records[0]) as key}
                                                 <th>
                                                     {key}
                                                 </th>
                                             {/each}
                                         </tr>
                                     {/if}
+                                </thead>
 
-                                    <tr class="results-table-record">
-                                        {#each Object.values(record) as value}
-                                            <td>
-                                                {value}
-                                            </td>
-                                        {/each}
-                                    </tr>
-                                {/each}
-                            </tbody>
-                        </table>
+                                <tbody> 
+                                    {#each new_records as record, index (index)}    
+                                        <tr class="results-table-record">
+                                            {#each Object.values(record) as value}
+                                                <td>
+                                                    {value}
+                                                </td>
+                                            {/each}
+                                        </tr>
+                                    {/each}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
@@ -400,6 +408,11 @@
         gap: 3rem;
     }
 
+    .results-table-container-body {
+        width: 100%;
+        overflow: auto;
+    }
+
     .results-table-container table {
         width: 100%;
         border: 1px solid var(--primary-300);
@@ -412,6 +425,7 @@
     .results-table-container td {
         padding: 0.15rem 0.5rem;
         border: 1px solid var(--primary-400);
+        white-space: pre;
     }
 
     .results-table-container th {

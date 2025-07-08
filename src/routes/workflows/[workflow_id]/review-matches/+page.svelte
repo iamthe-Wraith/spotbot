@@ -559,17 +559,25 @@
                                                 <span>Base</span>
                                             </div>
 
-                                            {#each Object.entries(result.base_row.data) as [row_key, row_value] (row_key)}
-                                                <div class="result-row-column">
-                                                    <div class="result-row-column-key">
-                                                        {row_key}
-                                                    </div>
-                                                    
-                                                    <div class="result-row-column-value">
-                                                        {row_value || '--'}
-                                                    </div>
-                                                </div>
-                                            {/each}
+                                            <div class="result-row-table-container">
+                                                <table>
+                                                    <thead>
+                                                        <tr>
+                                                            {#each Object.keys(result.base_row.data) as row_key}
+                                                                <th>{row_key}</th>
+                                                            {/each}
+                                                        </tr>
+                                                    </thead>
+
+                                                    <tbody>    
+                                                        <tr>
+                                                            {#each Object.values(result.base_row.data) as row_value, i (`${result.base_row.id}-value-${i}`)}
+                                                                <td>{row_value || '--'}</td>
+                                                            {/each}
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -642,18 +650,26 @@
                                                     <div class="result-row-column">
                                                         <span>Updated</span>
                                                     </div>
-                                                
-                                                    {#each Object.entries(updated_row.updated_row.data) as [row_key, row_value] (row_key)}
-                                                        <div class="result-row-column">
-                                                            <div class="result-row-column-key">
-                                                                {row_key}
-                                                            </div>
-                                                            
-                                                            <div class="result-row-column-value">
-                                                                {row_value || '--'}
-                                                            </div>
-                                                        </div>
-                                                    {/each}
+
+                                                    <div class="result-row-table-container">
+                                                        <table>
+                                                            <thead>
+                                                                <tr>
+                                                                    {#each Object.keys(updated_row.updated_row.data) as row_key}
+                                                                        <th>{row_key}</th>
+                                                                    {/each}
+                                                                </tr>
+                                                            </thead>
+
+                                                            <tbody>
+                                                                <tr>
+                                                                    {#each Object.values(updated_row.updated_row.data) as row_value, i (`${updated_row.updated_row.id}-value-${i}`)}
+                                                                        <td>{row_value || '--'}</td>
+                                                                    {/each}
+                                                                </tr>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -912,8 +928,13 @@
         align-items: center;
         justify-content: flex-start;
         background: var(--primary-600);
-        border: 1px solid var(--primary-400);
-        border-radius: 0.25rem;
+        border-bottom-left-radius: 0.25rem;
+        border-top-left-radius: 0.25rem;
+    }
+
+    .result-row-table-container {
+        width: 100%;
+        overflow: auto;
     }
 
     .result-row-base {
@@ -927,7 +948,8 @@
         justify-content: center;
         width: 1rem;
         background: var(--primary-400);
-        border-right: none;
+        border-top-left-radius: 0.25rem;
+        border-bottom-left-radius: 0.25rem;
 
         span {
             display: flex;
@@ -945,15 +967,24 @@
         border-right: 1px solid var(--primary-400);
     }
 
-    .result-row-column-key,
-    .result-row-column-value {
-        padding: 0.15rem 0.5rem;
+    table {
+        width: 100%;
+        border: 1px solid var(--primary-300);
+        border-collapse: collapse;
         color: var(--primary-100);
+        background: var(--primary-600);
+        border-radius: 0.25rem;
     }
 
-    .result-row-column-key {
-        font-weight: 600;
-        border-bottom: 1px solid var(--primary-400);
+    th,
+    td {
+        padding: 0.15rem 0.5rem;
+        border: 1px solid var(--primary-400);
+        white-space: pre;
+    }
+
+    th {
+        text-align: left;
     }
 
     .no-matches-found {
