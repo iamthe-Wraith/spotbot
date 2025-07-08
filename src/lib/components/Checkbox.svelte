@@ -43,7 +43,7 @@
             data-testid="{id}-checkbox"
         >
             <i
-                class="fa-regular fa-check"
+                class="fa-duotone fa-regular fa-check"
                 data-testid="{id}-checkbox-icon"
             ></i>
         </div>
@@ -58,6 +58,9 @@
 
 <style>
     .container {
+        --fa-primary-color: var(--neutral-900);
+        --fa-secondary-color: var(--neutral-900);
+
         padding: var(--outline-offset);
         border-radius: 0.25rem;
 
