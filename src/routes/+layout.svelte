@@ -70,7 +70,6 @@ import Logo from '$lib/components/Logo.svelte';
         --footer-height: 10rem;
 
         @media (min-width: 768px) {
-            --header-height: 4rem;
             --footer-height: 5rem;
         }
     }
