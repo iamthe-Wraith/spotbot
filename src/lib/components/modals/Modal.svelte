@@ -88,7 +88,7 @@
             data-testid="close-modal-button"
             aria-label="Close modal"
         >
-            <i class="fa-regular fa-times"></i>
+            <i class="fa-duotone fa-solid fa-xmark"></i>
         </button>
 
         {#if title}
@@ -196,6 +196,8 @@
     }
 
     .close {
+        --fa-secondary-color: var(--primary-900);
+
         position: absolute;
         top: 0.5rem;
         right: 0.5rem;
@@ -204,10 +206,9 @@
         align-items: center;
         width: 1.3rem;
         height: 1.3rem;
-        background-color: var(--neutral-250);
+        background: none;
         border: none;
         border-radius: 0.25rem;
-        color: var(--neutral-700);
         z-index: 10;
         
         & i {
@@ -215,7 +216,7 @@
         }
 
         &:hover {
-            background-color: var(--neutral-350);
+            --fa-secondary-color: var(--primary-700);
             cursor: pointer;
         }
     }

@@ -259,7 +259,7 @@
 
                         {#if files.base && !changing_files}
                             <p class="file-uploaded-text">
-                                <Icon icon="fa-solid fa-check" theme="success" />
+                                <Icon icon="fa-duotone fa-solid fa-check" theme="success" />
                                 {files.base.filename}
                             </p>
                         {:else}
@@ -276,7 +276,7 @@
 
                         {#if files.updated && !changing_files}
                             <p class="file-uploaded-text">
-                                <Icon icon="fa-solid fa-check" theme="success" />
+                                <Icon icon="fa-duotone fa-solid fa-check" theme="success" />
                                 {files.updated.filename}
                             </p>
                         {:else}

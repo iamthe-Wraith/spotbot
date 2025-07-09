@@ -22,8 +22,17 @@ import Logo from '$lib/components/Logo.svelte';
 </main>
 
 <footer>
-    <p>TydalWave</p>
-    <p>Copyright {new Date().getFullYear()}</p>
+    <div class="footer-content">
+        <p>TydalWave</p>
+        <p>Copyright {new Date().getFullYear()}</p>
+    </div>
+
+    <nav class="footer-links">
+        <a href="https://www.tydalwave.com" target="_blank" class="footer-link">
+            <i class="fa-brands fa-square-github"></i>
+            GitHub
+        </a>
+    </nav>
 </footer>
 
 <Toast />
@@ -54,12 +63,21 @@ import Logo from '$lib/components/Logo.svelte';
     }
 
     footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         height: var(--footer-height);
         padding: 0.5rem 1rem;
         border-top: 1px solid var(--primary-200);
 
         p {
             margin: 0;
+        }
+
+        .footer-links {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
         }
     }
 </style>

@@ -72,7 +72,7 @@
                     class:hidden={!step.completed}
                 >
                     {#if step.completed}
-                        <Icon icon="fa-solid fa-check" theme="success" />
+                        <Icon icon="fa-duotone fa-solid fa-check" theme="success" />
                     {/if}
                 </div>
                 <span class="step-text">

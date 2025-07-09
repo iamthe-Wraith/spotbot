@@ -439,10 +439,5 @@
         justify-content: space-between;
         gap: 1rem;
         padding-top: 1rem;
-
-        .disabled {
-            opacity: 0.5;
-            pointer-events: none;
-        }
     }
 </style>
