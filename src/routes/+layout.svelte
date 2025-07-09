@@ -28,7 +28,11 @@ import Logo from '$lib/components/Logo.svelte';
     </div>
 
     <nav class="footer-links">
-        <a href="https://www.tydalwave.com" target="_blank" class="footer-link">
+        <a
+            href="https://github.com/iamthe-Wraith/tydalwave"
+            target="_blank"
+            class="footer-link"
+        >
             <i class="fa-brands fa-square-github"></i>
             GitHub
         </a>
@@ -78,6 +82,23 @@ import Logo from '$lib/components/Logo.svelte';
             display: flex;
             align-items: center;
             gap: 1rem;
+        }
+
+        .footer-link {  
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            color: var(--neutral-900);
+
+            &:hover {
+                color: var(--primary-700);
+                cursor: pointer;
+            }
+        }
+
+        .footer-link i {
+            font-size: 1.3rem;
         }
     }
 </style>
