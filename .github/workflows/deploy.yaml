@@ -27,6 +27,9 @@ jobs:
                     rm -rf .env
                     echo "PUBLIC_APP_ENV=${{ secrets.PUBLIC_APP_ENV }}" >> .env
                     echo "PUBLIC_SENTRY_DSN=${{ secrets.PUBLIC_SENTRY_DSN }}" >> .env
+                    echo "PUBLIC_SENTRY_TRACES_SAMPLE_RATE=${{ secrets.PUBLIC_SENTRY_TRACES_SAMPLE_RATE }}" >> .env
+                    echo "PUBLIC_SENTRY_REPLAYS_SESSION_SAMPLE_RATE=${{ secrets.PUBLIC_SENTRY_REPLAYS_SESSION_SAMPLE_RATE }}" >> .env
+                    echo "PUBLIC_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE=${{ secrets.PUBLIC_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE }}" >> .env
 
             -
                 name: Build docker image
