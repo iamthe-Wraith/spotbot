@@ -29,7 +29,7 @@ import Logo from '$lib/components/Logo.svelte';
             rel="noopener noreferrer"
             class="footer-link"
         >
-            <i class="fa-duotone fa-regular fa-bug"></i>
+            <i class="fa-duotone fa-regular fa-bug" aria-hidden="true"></i>
             Report a bug
         </a>
 
@@ -39,7 +39,7 @@ import Logo from '$lib/components/Logo.svelte';
             rel="noopener noreferrer"
             class="footer-link"
         >
-            <i class="fa-duotone fa-regular fa-lightbulb"></i>
+            <i class="fa-duotone fa-regular fa-lightbulb" aria-hidden="true"></i>
             Request a feature
         </a>
 
@@ -49,7 +49,7 @@ import Logo from '$lib/components/Logo.svelte';
             rel="noopener noreferrer"
             class="footer-link"
         >
-            <i class="fa-brands fa-square-github"></i>
+            <i class="fa-brands fa-square-github" aria-hidden="true"></i>
             GitHub
         </a>
     </nav>
