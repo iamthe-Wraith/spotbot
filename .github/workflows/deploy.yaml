@@ -26,6 +26,7 @@ jobs:
                 run: |
                     rm -rf .env
                     echo "PUBLIC_APP_ENV=${{ secrets.PUBLIC_APP_ENV }}" >> .env
+                    echo "PUBLIC_SENTRY_DSN=${{ secrets.PUBLIC_SENTRY_DSN }}" >> .env
 
             -
                 name: Build docker image
